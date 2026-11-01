@@ -36,6 +36,15 @@ $failed = $false
 
 function Sha256([string]$path) { (Get-FileHash -Algorithm SHA256 -Path $path).Hash.ToLower() }
 
+# Start-Process with -Wait would also wait for the program the installer opens at the end, so
+# wait for the installer's own process only
+function RunAndWait([string]$file, [string]$arguments) {
+  $proc = Start-Process -FilePath $file -ArgumentList $arguments -PassThru
+  $null = $proc.Handle  # keeps the exit code readable after the process ends
+  if (-not $proc.WaitForExit(300000)) { throw "$([IO.Path]::GetFileName($file)) did not finish within 5 minutes" }
+  return $proc.ExitCode
+}
+
 function ProcName([string]$exe) { [IO.Path]::GetFileNameWithoutExtension($exe) }
 
 function StopProgram([string]$exe) {
@@ -89,9 +98,8 @@ foreach ($p in $programs) {
 
     # 1. silent install on a clean PC
     StopProgram $p.exe
-    $run = Start-Process -FilePath $file -ArgumentList '/S' -Wait -PassThru
-    $r.installExit = $run.ExitCode
-    if ($run.ExitCode -ne 0) { $r.problems += "silent install exit code $($run.ExitCode)"; $failed = $true }
+    $r.installExit = RunAndWait $file '/S'
+    if ($r.installExit -ne 0) { $r.problems += "silent install exit code $($r.installExit)"; $failed = $true }
     $regPath = Join-Path $uninstallRoot $p.key
     $null = WaitUntil { Test-Path $regPath } 20
     $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
@@ -115,9 +123,9 @@ foreach ($p in $programs) {
     if ($proc.HasExited) {
       $r.openCopy = "the program closed by itself within 6 s (exit $($proc.ExitCode)), so this was not tested"
     } else {
-      $run = Start-Process -FilePath $file -ArgumentList '/S' -Wait -PassThru
+      $code = RunAndWait $file '/S'
       $proc.Refresh()
-      $r.openCopy = if ($proc.HasExited) { "closed by force (install exit $($run.ExitCode))" } else { "left open (install exit $($run.ExitCode))" }
+      $r.openCopy = if ($proc.HasExited) { "closed by force (install exit $code)" } else { "left open (install exit $code)" }
     }
     StopProgram $p.exe
 
