@@ -14,10 +14,19 @@ import 'ui/theme.dart';
 import 'update/updater.dart';
 
 class ToolkitApp extends StatelessWidget {
-  const ToolkitApp({super.key, required this.account, required this.model, required this.settings});
+  const ToolkitApp({
+    super.key,
+    required this.account,
+    required this.model,
+    required this.settings,
+    this.checkUpdates = true,
+  });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
+
+  /// Looks for a new Toolkit a few seconds after opening (off in tests)
+  final bool checkUpdates;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -28,16 +37,17 @@ class ToolkitApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: settings.themeMode,
-      home: _Gate(account: account, model: model, settings: settings),
+      home: _Gate(account: account, model: model, settings: settings, checkUpdates: checkUpdates),
     ),
   );
 }
 
 class _Gate extends StatefulWidget {
-  const _Gate({required this.account, required this.model, required this.settings});
+  const _Gate({required this.account, required this.model, required this.settings, required this.checkUpdates});
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
+  final bool checkUpdates;
 
   @override
   State<_Gate> createState() => _GateState();
@@ -45,7 +55,7 @@ class _Gate extends StatefulWidget {
 
 class _GateState extends State<_Gate> {
   bool _started = false;
-  bool _updateChecked = false;
+  late bool _updateChecked = !widget.checkUpdates;
   late final AppLifecycleListener _life;
 
   @override

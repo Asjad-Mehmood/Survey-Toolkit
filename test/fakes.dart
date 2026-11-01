@@ -89,7 +89,8 @@ class Harness {
   late final ToolkitModel model;
   late final AppSettings settings;
 
-  Widget get app => ToolkitApp(account: account, model: model, settings: settings);
+  // no self-update check: on Windows it would leave its timer running after the test
+  Widget get app => ToolkitApp(account: account, model: model, settings: settings, checkUpdates: false);
 }
 
 /// A store as if this account signed in on this PC before
