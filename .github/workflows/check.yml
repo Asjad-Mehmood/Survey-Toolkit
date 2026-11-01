@@ -1,0 +1,89 @@
+# On every push and pull request: the tests, then the Windows program built, installed and checked
+# against the real tools on a clean Windows PC (tool/windows_check.ps1).
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Tests on Windows
+        run: |
+          flutter pub get
+          flutter test
+
+      - name: Build the Windows program
+        shell: pwsh
+        run: |
+          flutter build windows --release --dart-define=NO_UPDATE_CHECK=true --dart-define=APP_VERSION=0.0.0
+          if (-not (Test-Path build\windows\x64\runner\Release\SurveyToolkit.exe)) { throw "SurveyToolkit.exe was not built" }
+          foreach ($dll in 'msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll') {
+            Copy-Item "C:\Windows\System32\$dll" build\windows\x64\runner\Release\
+          }
+
+      - name: Build the installer
+        shell: pwsh
+        working-directory: installer
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe")) { choco install nsis -y --no-progress }
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=0.0.0 installer.nsi
+          if (-not (Test-Path SurveyToolkit-Setup.exe)) { throw "The installer was not made" }
+
+      - name: Install, find the real tools, open, uninstall
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png
+
+      - name: Keep the screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screenshot
+          path: windows-check.png
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # to try by hand: Actions -> this run -> Artifacts. It doesn't look for its own updates.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SurveyToolkit-Setup-test
+          path: installer/SurveyToolkit-Setup.exe
+          retention-days: 14

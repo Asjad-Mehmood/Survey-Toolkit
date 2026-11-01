@@ -1,0 +1,104 @@
+name: Build and Release (beta)
+
+# Runs when a tag such as v0.1.0 is pushed, and only when the owner says to release.
+#
+# While the Toolkit is a beta test its releases are GitHub PRE-releases: they never become this
+# repository's "latest", and they never touch any product's releases. Installed Toolkits find them
+# through the list of releases (lib/src/update/update_check.dart). The release description comes
+# from docs/releases/<tag>.md.
+on:
+  push:
+    tags:
+      - 'v0.*'
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from tag
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          if ($ver -notmatch '^0\.\d+\.\d+$') { throw "A beta release tag is v0 and two numbers, for example v0.1.0. Got: ${{ github.ref_name }}" }
+          "VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Tests
+        run: |
+          flutter pub get
+          flutter test
+
+      - name: Build the program
+        shell: pwsh
+        run: |
+          flutter build windows --release --build-name=$env:VERSION --build-number=${{ github.run_number }} --dart-define=APP_VERSION=$env:VERSION
+          foreach ($dll in 'msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll') {
+            Copy-Item "C:\Windows\System32\$dll" build\windows\x64\runner\Release\
+          }
+
+      - name: Build the installer
+        shell: pwsh
+        working-directory: installer
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe")) { choco install nsis -y --no-progress }
+          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=$env:VERSION" installer.nsi
+          if (-not (Test-Path SurveyToolkit-Setup.exe)) { throw "The installer was not made" }
+
+      - name: Write latest.json
+        shell: pwsh
+        working-directory: installer
+        run: |
+          $h = (Get-FileHash SurveyToolkit-Setup.exe -Algorithm SHA256).Hash.ToLower()
+          '{"version":"' + $env:VERSION + '","sha256":"' + $h + '"}' | Set-Content latest.json -Encoding ascii
+
+      - name: Find the release notes
+        id: notes
+        shell: bash
+        run: |
+          f="docs/releases/${GITHUB_REF_NAME}.md"
+          if [ -f "$f" ]; then echo "path=$f" >> "$GITHUB_OUTPUT"; else echo "path=" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Publish the pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Survey Toolkit ${{ github.ref_name }} (beta)
+          body_path: ${{ steps.notes.outputs.path }}
+          prerelease: true
+          make_latest: false
+          files: |
+            installer/SurveyToolkit-Setup.exe
+            installer/latest.json
+
+  # The published files the way installed Toolkits read them: both there, and the installer's
+  # SHA-256 the one in latest.json. (Slope Calculator's v1.0.3 lost its latest.json this way.)
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Both files published and matching
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          want="${GITHUB_REF_NAME#v}"
+          for i in 1 2 3 4 5 6; do
+            if curl -fsSL "$base/latest.json" -o latest.json && grep -q "\"version\":\"$want\"" latest.json; then break; fi
+            sleep 10
+          done
+          grep -q "\"version\":\"$want\"" latest.json || { echo "latest.json is missing or wrong"; exit 1; }
+          sha=$(sed -E 's/.*"sha256":"([0-9a-f]{64})".*/\1/' latest.json)
+          curl -fsSL "$base/SurveyToolkit-Setup.exe" -o setup.exe
+          echo "$sha  setup.exe" | sha256sum -c -
