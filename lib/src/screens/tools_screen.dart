@@ -44,8 +44,8 @@ class ToolsScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
-            const SizedBox(width: 10),
-            const Tag('Beta'),
+            // beside the name when there is room for both
+            if (MediaQuery.sizeOf(context).width >= 520) ...[const SizedBox(width: 10), const Tag('Beta')],
           ],
         ),
         actions: [
@@ -364,13 +364,16 @@ class ToolCard extends StatelessWidget {
                 style: TextStyle(color: c.muted, fontSize: 13),
               ),
             ],
-            for (final p in tool.problems) ...[
-              const SizedBox(height: 8),
-              Text(
-                p,
-                style: TextStyle(color: c.muted, fontSize: 12.5, fontStyle: FontStyle.italic),
-              ),
-            ],
+            // the website's notes on a tool are for the owner; a user sees them only when the download
+            // can't be checked
+            if (tool.download == null && !model.noFeed)
+              for (final p in tool.problems) ...[
+                const SizedBox(height: 8),
+                Text(
+                  p,
+                  style: TextStyle(color: c.muted, fontSize: 12.5, fontStyle: FontStyle.italic),
+                ),
+              ],
             if (buttons.isNotEmpty) ...[const SizedBox(height: 14), Wrap(spacing: 8, runSpacing: 8, children: buttons)],
           ],
         ),
