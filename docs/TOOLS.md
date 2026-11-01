@@ -18,6 +18,18 @@ clean Windows PC, on every change and every Monday.
 | If open during `/S` | **Closed by force** | **Closed by force** | **Closed by force** | AutoCAD keeps the old one until restart | the old `.hta` stays open |
 | Own update check | Yes, asks first | Yes, asks first | Yes | No | No |
 
+**Confirmed on Windows** by the Probe run of 1 November 2026
+([run 41336925385](https://github.com/Asjad-Mehmood/Survey-Toolkit/actions/runs/41336925385)):
+
+- **Install and uninstall:** all three installers installed silently with exit code 0, put the
+  latest version in the registry, and uninstalled silently and cleanly.
+- **Opening after install:** Excel to KML and Traverse & Level opened themselves; Slope
+  Calculator didn't.
+- **An open copy:** all three closed it by force.
+- **The zips:** both had the expected files and versions (RoadPro 3.4, Project Folder Manager
+  6.2).
+- **Slope Calculator:** `latest.json` is missing.
+
 **No tool needs administrator rights**, so the Toolkit can be per-user too and update with no
 Windows "Allow changes?" prompt and no background service. That was the biggest risk in the plan.
 
