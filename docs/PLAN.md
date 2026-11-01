@@ -14,7 +14,7 @@ website's Toolkit folders and tables leaves everything exactly as before.
 | Code | This repository only. Nothing is added to the five product repositories. |
 | Website pages | Only under `/toolkit-beta`: noindex, not in the sitemap or menu, testers only |
 | Website API | Only under `/api/toolkit/*`. Existing routes are not changed. |
-| Database | New tables only (`ToolkitTester`, `ToolkitDevice`, `ToolkitEvent`), added by migrations that only add |
+| Database | Three tables of its own (`toolkit_testers`, `toolkit_devices`, `toolkit_events`), created on first use like `slope_jobs`: no migration, no other table changed |
 | Download counts | Their own type, `toolkit` |
 | Users | A beta allowlist, managed in Admin. Everyone else sees "The beta is closed". |
 | Releases | GitHub **pre-releases**, v0.x. The products' "latest" links never change. |
@@ -42,12 +42,19 @@ need a real PC (AutoCAD).
   latest version, release date, download URL, size, SHA-256, release notes link.
   - The three Windows programs come from their own `latest.json` and GitHub release, cached for
     10 minutes.
-  - RoadPro and Project Folder Manager come from `lib/toolkit/tools.ts`, which holds their
-    version, file and SHA-256. A script, `npm run toolkit:hash`, updates it when a zip changes.
+    If GitHub's API can't be read, `latest.json` alone still gives the version, SHA-256 and
+    the installer's address.
+  - RoadPro and Project Folder Manager: the version from the website's `lib/roadpro.ts` and
+    `lib/folderManager.ts`. The server downloads each zip and hashes it (kept for an hour), so
+    there is nothing to update by hand.
+  - A tool that can't be checked gets no download, only a problem.
 - `POST /api/toolkit/event`: the Toolkit reports installed, updated or failed, with the reason.
   Stored in `ToolkitEvent`.
 - `GET /api/toolkit/me`: is this account a tester? Uses the same sign-in token as Slope
-  Calculator.
+  Calculator. Admins always are.
+- `GET/POST/DELETE /api/toolkit/testers`: the beta list, admins only (the Admin screen is T5).
+
+Built in website PR #97.
 
 **Done when:** the feed is right for all five tools (tests), and the website's existing tests
 still pass with no change to existing routes.
