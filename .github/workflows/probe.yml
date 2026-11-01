@@ -1,0 +1,35 @@
+# Checks, on a clean Windows PC, that every tool can be downloaded, checked, installed silently,
+# found and uninstalled the way the Toolkit will do it (tool/probe_tools.ps1).
+# Also runs every Monday, so a broken product release (a missing latest.json, a wrong SHA-256)
+# shows up here before testers meet it.
+name: Probe
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe the five tools
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./tool/probe_tools.ps1
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-results
+          path: probe/results.json
+          if-no-files-found: ignore
