@@ -57,6 +57,12 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# webview_windows (the workspace's WebView2) still uses <experimental/coroutine>, which the newest
+# Visual Studio refuses unless told otherwise. Only that plugin gets this.
+if(TARGET webview_windows_plugin)
+  target_compile_definitions(webview_windows_plugin PRIVATE _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

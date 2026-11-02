@@ -210,6 +210,23 @@ class Account extends ChangeNotifier {
     return false;
   }
 
+  /// A single-use address that signs a web app window in and goes on to [path] (the workspace).
+  /// null when it can't be had (offline, the beta list): the app then shows its own sign-in.
+  Future<String?> handoffUrl(String path) async {
+    if (!signedIn) return null;
+    try {
+      final j = await api.call('POST', '/api/toolkit/handoff', {'next': path});
+      final url = j['url'];
+      if (url is! String) return null;
+      final u = Uri.tryParse(url), base = Uri.parse(api.base);
+      // only the website itself, at its handover address
+      if (u == null || u.host != base.host || u.scheme != base.scheme || u.path != '/api/toolkit/handoff') return null;
+      return url;
+    } on ApiError {
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await api.call('POST', '/api/auth/logout');

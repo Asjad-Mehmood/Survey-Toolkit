@@ -1,4 +1,4 @@
-; Installer for the Survey Toolkit (Flutter Windows build, no WebView2).
+; Installer for the Survey Toolkit (Flutter Windows build; the workspace uses Windows' own WebView2).
 ; Per user, no administrator rights: installs to %LOCALAPPDATA%\Survey Toolkit\Program, adds Start
 ; menu and desktop shortcuts and an entry in Settings -> Apps. Silent with /S (the self-updater uses
 ; /S /UPDATE and the Toolkit is opened again afterwards).
@@ -91,6 +91,9 @@ Section "Uninstall"
   Delete "$DESKTOP\${APP}.lnk"
   RMDir /r "$SMPROGRAMS\${APP}"
   RMDir /r "$INSTDIR"
+  ; the web apps' browser data (their sign-in) and the downloads folder
+  RMDir /r "$LOCALAPPDATA\Survey Toolkit\WebView"
+  RMDir /r "$LOCALAPPDATA\Survey Toolkit\downloads"
   ; the Survey Toolkit folder goes too, but only when nothing else is left in it
   RMDir "$LOCALAPPDATA\Survey Toolkit"
   DeleteRegKey HKCU "${KEY}"

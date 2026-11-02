@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,8 @@ import 'package:survey_toolkit/src/toolkit/feed.dart';
 import 'package:survey_toolkit/src/toolkit/installer.dart';
 import 'package:survey_toolkit/src/toolkit/toolkit_model.dart';
 import 'package:survey_toolkit/src/ui/settings.dart';
+import 'package:survey_toolkit/src/workspace/app_view.dart';
+import 'package:survey_toolkit/src/workspace/apps.dart';
 
 /// A fake exceltokml.com
 class FakeSite {
@@ -23,6 +26,8 @@ class FakeSite {
   bool tester = true;
   bool tokenGood = true;
   final reports = <Map<String, Object?>>[];
+  final handoffs = <String>[];
+  bool handoffWorks = true;
   String feed = File('test/fixtures/feed.json').readAsStringSync();
 
   late final client = MockClient((req) async {
@@ -49,6 +54,11 @@ class FakeSite {
         });
       case '/api/toolkit/feed':
         return http.Response(feed, 200, headers: {'content-type': 'application/json'});
+      case '/api/toolkit/handoff':
+        if (!authed) return json({'error': 'Sign in'}, 401);
+        if (!handoffWorks) return json({'error': 'Couldn\'t start the sign-in.'}, 500);
+        handoffs.add((jsonDecode(req.body) as Map)['next'] as String);
+        return json({'success': true, 'url': 'https://www.exceltokml.com/api/toolkit/handoff?code=${'c' * 64}'});
       case '/api/toolkit/event':
         if (!authed) return json({'error': 'Sign in'}, 401);
         reports.add(jsonDecode(req.body) as Map<String, Object?>);
@@ -113,6 +123,39 @@ class FakeInstaller extends ToolInstaller {
   void log(String line) {}
 }
 
+/// Stands in for WebView2: shows the address it was opened at
+class FakeView implements AppViewHandle {
+  FakeView(this.app, Future<String> Function() start) {
+    start().then((u) {
+      started = u;
+      _state.value = AppViewState(loading: false, url: u);
+    });
+  }
+  final WorkspaceApp app;
+  String? started;
+  bool forgot = false;
+  bool disposed = false;
+  final _state = ValueNotifier(const AppViewState());
+
+  @override
+  ValueListenable<AppViewState> get state => _state;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: _state,
+    builder: (context, s, _) => Center(child: Text('Showing ${s.url ?? '…'}')),
+  );
+
+  @override
+  Future<void> back() async {}
+  @override
+  Future<void> reload() async {}
+  @override
+  Future<void> forget() async => forgot = true;
+  @override
+  void dispose() => disposed = true;
+}
+
 class Harness {
   Harness({
     required this.site,
@@ -127,6 +170,15 @@ class Harness {
     settings = AppSettings(store);
   }
   late final ToolInstaller? installer;
+
+  /// The app windows opened, in order
+  final views = <FakeView>[];
+  AppViewHandle _view(WorkspaceApp app, Future<String> Function() start) {
+    final v = FakeView(app, start);
+    views.add(v);
+    return v;
+  }
+
   final FakeSite site;
   final Store store;
   late final Account account;
@@ -134,7 +186,7 @@ class Harness {
   late final AppSettings settings;
 
   // no self-update check: on Windows it would leave its timer running after the test
-  Widget get app => ToolkitApp(account: account, model: model, settings: settings, checkUpdates: false);
+  Widget get app => ToolkitApp(account: account, model: model, settings: settings, checkUpdates: false, views: _view);
 }
 
 /// A store as if this account signed in on this PC before

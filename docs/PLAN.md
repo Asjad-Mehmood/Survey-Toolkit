@@ -20,13 +20,13 @@ website's Toolkit folders and tables leaves everything exactly as before.
 | Releases | GitHub **pre-releases**, v0.x. The products' "latest" links never change. |
 | On the PC | `%LOCALAPPDATA%\Survey Toolkit`. Products are installed with their official installers, checked by SHA-256. |
 | Front page | The animated options are previewed on `/toolkit-beta/home-options`. The real home page is unchanged until launch. |
-| Risk | Power is added in steps: look only (T2), install on a click (T3), automatic (T4) |
+| Risk | Power is added in steps: look only (T2), install on a click (T3), automatic (T5) |
 
 ## Phases
 
 Each phase is one pull request, merged only when the owner says "Merge".
 
-### T0: Research (this phase)
+### T0: Research
 
 For each tool: how to find it on a PC, install it, update it, open it and remove it. Done in
 [TOOLS.md](TOOLS.md), and checked on GitHub's Windows machines by `tool/probe_tools.ps1` (the
@@ -52,7 +52,7 @@ need a real PC (AutoCAD).
   Stored in `ToolkitEvent`.
 - `GET /api/toolkit/me`: is this account a tester? Uses the same sign-in token as Slope
   Calculator. Admins always are.
-- `GET/POST/DELETE /api/toolkit/testers`: the beta list, admins only (the Admin screen is T5).
+- `GET/POST/DELETE /api/toolkit/testers`: the beta list, admins only (the Admin screen is T6).
 
 Built in website PR #97.
 
@@ -113,9 +113,41 @@ progress bar on each card. One job runs at a time, and each job is reported to
   five tools, updates Slope Calculator 1.0.2 to the latest, refuses while Slope Calculator is
   open, refuses a wrong SHA-256, and finds every version. It removes RoadPro and Project Folder
   Manager, keeping the settings file.
-- **Left for a PC with AutoCAD (T8):** whether SECURELOAD asks about a bundle in `%APPDATA%`.
+- **Left for a PC with AutoCAD (T9):** whether SECURELOAD asks about a bundle in `%APPDATA%`.
 
-### T4: Automatic updates (v0.3)
+### T4: Workspace, every web app in one window
+
+The Toolkit becomes a workspace, like the Microsoft 365 app.
+
+**What it has:**
+- **A sidebar** with **Home** (the Tools page) and the three web apps: **Excel to KML**
+  (`/app`), **Traverse & Level** (`/traverse/app`) and **Slope Calculator**
+  (`/slope-calculation/app`).
+- **Each app inside the window:** it opens in the Toolkit's own window (Microsoft Edge WebView2,
+  built into Windows 10 and 11). It stays open in the background when you switch, like a tab.
+- **Google's app grid** in the header, and **Ctrl+1 to Ctrl+4**, to jump between them.
+- **Signed in already:** the Toolkit asks the website for a **single-use code** (POST
+  `/api/toolkit/handoff`, testers only), good for 60 seconds and only for those three
+  addresses. The window opens it and is signed in with a session of its own. The long-lived
+  sign-in never goes into an address. If there's no code (offline), the app shows its own
+  sign-in.
+- **Each app's toolbar:** Back, Reload, Open in your browser, and **Windows app** when that
+  tool's program is installed.
+- **Links off the website** open in the browser.
+- **The last app** opened comes back next time.
+- **Signing out** clears every app window's sign-in. The uninstaller removes the windows'
+  browser data.
+
+**Left out on purpose:** RoadPro (it runs inside AutoCAD) and Project Folder Manager (a Windows
+HTML application). They stay on Home.
+
+**The live website** gets no app switcher in this phase, to keep the test separate. That can come
+at launch (T10).
+
+**Done when:** the three apps work inside the Toolkit, signed in, on a test PC, and the Windows
+check shows a web app drawn inside the window.
+
+### T5: Automatic updates (v0.4)
 
 - Checks when it starts and every 4 hours while open.
 - **Start with Windows**, in the tray. Off by default.
@@ -127,7 +159,7 @@ progress bar on each card. One job runs at a time, and each job is reported to
 
 **Done when:** a new version of any tool reaches a test PC with nobody pressing anything.
 
-### T5: Admin
+### T6: Admin
 
 A separate **Toolkit (beta)** tab in the website's Admin:
 
@@ -136,7 +168,7 @@ A separate **Toolkit (beta)** tab in the website's Admin:
 - updates done and failed, with the reason;
 - Toolkit downloads.
 
-### T6: Automatic tests
+### T7: Automatic tests
 
 On GitHub's Windows machines, on every change:
 
@@ -150,21 +182,21 @@ On GitHub's Windows machines, on every change:
 Screenshots of each step are kept as an artifact. There are also unit tests for the feed and
 status logic.
 
-### T7: Hidden beta page and the front page
+### T8: Hidden beta page and the front page
 
 - `/toolkit-beta`: a product page and a Download button, for testers only.
 - `/toolkit-beta/home-options`: the five animated front-page options, built to the brief. They
   have a Pause button, real versions read from the feed, reduced motion and a phone layout. The
   owner picks one.
 
-### T8: Beta with real people
+### T9: Beta with real people
 
 - 3 to 5 testers, for about 2 weeks.
 - Test PCs: Windows 10 and 11, a PC with AutoCAD, a slow network, offline, and an antivirus
   program.
 - A checklist like Slope Calculator's TESTING.md, plus the failure list in Admin.
 
-### T9: Launch, only when the owner says so
+### T10: Launch, only when the owner says so
 
 If the beta went well:
 
@@ -193,8 +225,8 @@ These are not part of the test. Each one is listed here and asked for before it 
 | Risk | What we do |
 | --- | --- |
 | A program open during an update is closed by force | The Toolkit checks first and waits (T3) |
-| Excel to KML and Traverse open themselves after a silent update | Automatic updates for them happen only when opened from the Toolkit, until `/NOLAUNCH` exists (T4) |
+| Excel to KML and Traverse open themselves after a silent update | Automatic updates for them happen only when opened from the Toolkit, until `/NOLAUNCH` exists (T5) |
 | No code signing | Every download is checked by SHA-256. Signing comes before a public launch. |
-| RoadPro can't be tested in CI (no AutoCAD) | Tested by hand on a PC with AutoCAD (T8) |
+| RoadPro can't be tested in CI (no AutoCAD) | Tested by hand on a PC with AutoCAD (T9) |
 | An old RoadPro in the AutoCAD Startup Suite loads as well as the new one | The Toolkit looks for it and tells the user how to remove it (T3) |
 | Two updaters (the program's own and the Toolkit) | Same installer and same `latest.json`, so the result is the same. Product change 2 tidies it up. |
