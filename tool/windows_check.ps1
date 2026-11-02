@@ -342,9 +342,10 @@ Step '16. Uninstall the Toolkit: the tools stay'
 $prefs = Join-Path $env:APPDATA 'Excel to KML\Survey Toolkit'
 Write-Host "  settings folder before uninstalling: $(if (Test-Path $prefs) { 'there' } else { 'not made' })"
 $code = RunAndWait (Join-Path $dir 'Uninstall.exe') @('/S')
+# NSIS's uninstaller hands over to a copy of itself and returns at once: wait for each step
 Check (WaitFor { -not (Test-Path $dir) } 30) 'uninstall removes the Program folder'
-Check (-not (Test-Path $key)) 'uninstall removes it from Settings > Apps'
-Check ($null -eq (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall removes Start with Windows'
+Check (WaitFor { -not (Test-Path $key) } 30) 'uninstall removes it from Settings > Apps'
+Check (WaitFor { $null -eq (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue) } 30) 'uninstall removes Start with Windows'
 Check (-not (Get-Process SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall closes the Toolkit'
 Check (-not (Test-Path (Join-Path $home_ 'WebView'))) 'uninstall removes the web apps'' browser data (their sign-in)'
 Check (-not (Test-Path $prefs)) 'uninstall removes the Toolkit''s settings and sign-in'
