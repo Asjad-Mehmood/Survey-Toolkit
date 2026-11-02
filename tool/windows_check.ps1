@@ -14,10 +14,18 @@
 #      start shows the window; closing it keeps the Toolkit running in the tray (a screenshot);
 #  12. open the Toolkit: a drawn window with the sign-in, a screenshot, one copy on a second start;
 #  13. the workspace: Slope Calculator's web app inside the Toolkit's window (WebView2), a screenshot;
-#  14. uninstall the Toolkit: its folder, entry, Start with Windows and the web apps' browser data go,
-#      the tools stay.
-#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png windows-workspace.png windows-tray.png
-param([Parameter(Mandatory)] [string] $Installer, [string] $Screenshot = 'windows-check.png', [string] $Workspace = 'windows-workspace.png', [string] $TrayShot = 'windows-tray.png')
+#  14. the Toolkit updates itself: the new installer with /S /UPDATE while it is open (as its
+#      self-updater runs it) closes it, installs, and opens the new version; Start with Windows stays;
+#  15. the Toolkit removes the last two tools it installed, Excel to KML and Traverse & Level;
+#  16. uninstall the Toolkit: its folder, entry, Start with Windows, the web apps' browser data, its
+#      sign-in and its log go; the tools stay;
+#  17. Slope Calculator is removed with its own uninstaller, and the PC is clean: nothing in
+#      Settings > Apps, no program files, no shortcuts, only the user's own Project Folder Manager
+#      settings file kept on purpose.
+# Every check goes on the run's summary page as a checklist, with a screenshot at each step that
+# shows something (saved in the shots folder, kept as the run's artifact).
+#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe shots
+param([Parameter(Mandatory)] [string] $Installer, [string] $Shots = 'shots')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $home_ = Join-Path $env:LOCALAPPDATA 'Survey Toolkit'
@@ -29,7 +37,19 @@ New-Item -ItemType Directory -Force -Path $work | Out-Null
 $api = @{ 'User-Agent' = 'survey-toolkit-check'; 'Accept' = 'application/vnd.github+json' }
 if ($env:GITHUB_TOKEN) { $api['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
 
-function Check($ok, $what) { if (-not $ok) { throw "FAILED: $what" } else { Write-Host "ok  $what" } }
+New-Item -ItemType Directory -Force -Path $Shots | Out-Null
+$script:shot = 0
+# the checklist on the run's summary page
+function Summary([string] $line) { if ($env:GITHUB_STEP_SUMMARY) { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8 } }
+function Step([string] $title) { Write-Host "`n== $title"; Summary "`n### $title`n" }
+function Check($ok, $what) {
+  if (-not $ok) { Summary "- :x: **FAILED: $what**"; throw "FAILED: $what" }
+  Write-Host "ok  $what"
+  Summary "- :white_check_mark: $what"
+}
+# something to know that isn't the Toolkit's to fix (another program's own behaviour)
+function Note([string] $what) { Write-Host "note  $what"; Summary "- :warning: $what" }
+Summary '## Survey Toolkit on a clean Windows PC'
 function WaitFor([scriptblock] $test, [int] $seconds) {
   for ($i = 0; $i -lt $seconds * 2; $i++) { if (& $test) { return $true }; Start-Sleep -Milliseconds 500 }
   return $false
@@ -41,7 +61,10 @@ function RunAndWait([string] $file, [string[]] $arguments) {
   if (-not $p.WaitForExit(300000)) { throw "$file did not finish within 5 minutes" }
   return $p.ExitCode
 }
-function Shot([string] $file, [string] $what) {
+# a screenshot of the whole screen, numbered in step order; unless -Plain, it must show a drawn window
+function Shot([string] $name, [string] $what, [switch] $Plain) {
+  $script:shot++
+  $file = Join-Path $Shots ('{0:D2}-{1}.png' -f $script:shot, $name)
   Add-Type -AssemblyName System.Windows.Forms, System.Drawing
   $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
   $bmp = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
@@ -50,7 +73,8 @@ function Shot([string] $file, [string] $what) {
   $colours = @{}
   for ($x = 0; $x -lt $screen.Width; $x += 23) { for ($y = 0; $y -lt $screen.Height; $y += 19) { $colours[$bmp.GetPixel($x, $y).ToArgb()] = 1 } }
   Write-Host "screenshot: $file ($($screen.Width)x$($screen.Height), $($colours.Count) colours)"
-  Check ($colours.Count -gt 20) $what
+  Summary "- :camera: ``$(Split-Path $file -Leaf)``: $what"
+  if (-not $Plain) { Check ($colours.Count -gt 20) "$what (the screenshot shows a drawn window)" }
 }
 function Detect([string] $name) {
   $out = Join-Path $work "$name.json"
@@ -62,6 +86,7 @@ function Detect([string] $name) {
   return $j
 }
 
+Step '1. Install the Toolkit'
 # 1. install
 $code = RunAndWait $Installer @('/S')
 Check ($code -eq 0) 'the installer finished (exit 0)'
@@ -72,13 +97,16 @@ foreach ($f in 'flutter_windows.dll', 'data\app.so', 'data\icudtl.dat', 'msvcp14
 Check ((Get-ItemProperty $key).DisplayName -eq 'Survey Toolkit') 'listed in Settings > Apps as "Survey Toolkit"'
 Check (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Survey Toolkit\Survey Toolkit.lnk')) 'Start menu shortcut'
 Check (Test-Path (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Survey Toolkit.lnk')) 'desktop shortcut'
+Shot 'installed' 'the desktop after installing, with the Toolkit''s shortcut' -Plain
 
+Step '2. A PC with none of the tools'
 # 2. a PC with none of the tools
 $none = Detect 'none'
 foreach ($id in 'excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope') {
   Check ($null -eq $none.tools.$id.version) "finds no $id on a clean PC"
 }
 
+Step '3. A feed like the website''s, from the official downloads'
 # 3. a feed like the website's, from the tools' official downloads (the website's feed may not be
 #    live; the Toolkit reads both the same way)
 function Sha([string] $f) { (Get-FileHash -Algorithm SHA256 -Path $f).Hash.ToLower() }
@@ -132,12 +160,17 @@ function Toolkit([string] $verb, [string] $id, [string] $feedFile = $feed) {
 }
 function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
 
+Step '4. The Toolkit installs every tool'
 # 4. the Toolkit installs every tool, from nothing
 foreach ($id in 'excel-to-kml', 'traverse', 'roadpro', 'folder-manager') {
   $r = Toolkit 'install' $id
   Check ($r.ok -and $r.version -eq $want[$id]) "the Toolkit installs $id $($want[$id])"
-  Start-Sleep -Seconds 3
-  StopTools # Excel to KML and Traverse & Level open themselves after a silent install
+  if ($id -in 'excel-to-kml', 'traverse') {
+    # Excel to KML and Traverse & Level open themselves after a silent install
+    Start-Sleep -Seconds 6
+    Shot "installed-$id" "$id $($want[$id]), installed by the Toolkit and opened by its own installer" -Plain
+  }
+  StopTools
 }
 $xml = Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle\PackageContents.xml'
 Check ((Test-Path $xml) -and ((Get-Content $xml -Raw) -match 'LoadOnAutoCADStartup="True"')) 'RoadPro is an AutoCAD bundle that loads at start-up'
@@ -146,6 +179,7 @@ Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager.hta')) 'Project Folder 
 Check (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Survey Toolkit\Project Folder Manager.lnk')) 'Project Folder Manager has a Start menu shortcut'
 Check (@(Get-ChildItem (Join-Path $home_ 'downloads') -File -ErrorAction SilentlyContinue).Count -eq 0) 'no downloads left behind'
 
+Step '5. An update: Slope Calculator 1.0.2 to the latest'
 # 5. an update: an older Slope Calculator (its v1.0.2 installer), then the Toolkit brings it up to date
 $old = Join-Path $work 'SlopeCalculator-Setup-1.0.2.exe'
 Invoke-WebRequest -Uri 'https://github.com/Asjad-Mehmood/Slope-calculator-/releases/download/v1.0.2/SlopeCalculator-Setup.exe' -OutFile $old
@@ -155,6 +189,7 @@ Check ($before.tools.slope.version -eq '1.0.2') 'Slope Calculator 1.0.2 to start
 $r = Toolkit 'install' 'slope'
 Check ($r.ok -and $r.version -eq $want['slope']) "the Toolkit updates Slope Calculator to $($want['slope'])"
 
+Step '6. A tool that is open is never installed over'
 # 6. a tool that is open is never installed over
 $p = Start-Process -FilePath (Join-Path $env:LOCALAPPDATA 'SlopeCalculator\SlopeCalculator.exe') -PassThru
 Start-Sleep -Seconds 6
@@ -162,8 +197,10 @@ $r = Toolkit 'install' 'slope'
 Check ($r.blocked -and $r.message -like 'Close Slope Calculator first*') 'with Slope Calculator open, the Toolkit asks to close it and does nothing'
 $p.Refresh()
 Check (-not $p.HasExited) 'Slope Calculator was left open'
+Shot 'tool-open' "Slope Calculator $($want['slope']) open (after the Toolkit's update); the Toolkit left it alone" -Plain
 StopTools
 
+Step '7. A download with the wrong SHA-256 is never run'
 # 7. a download that doesn't match its SHA-256 is never run
 $r = Toolkit 'uninstall' 'traverse'
 Check $r.ok 'the Toolkit uninstalls Traverse & Level with its own uninstaller'
@@ -179,6 +216,7 @@ Check $r.ok 'installed again with the right SHA-256'
 Start-Sleep -Seconds 3
 StopTools
 
+Step '8. The Toolkit finds every tool, with the right versions'
 # 8. the Toolkit finds them all, with the right versions
 $all = Detect 'all'
 foreach ($id in $want.Keys) {
@@ -189,6 +227,7 @@ foreach ($id in 'excel-to-kml', 'traverse', 'slope', 'folder-manager') {
 }
 Check ($all.tools.roadpro.note -eq 'AutoCAD not found on this PC') 'says AutoCAD is not on this PC (RoadPro needs it)'
 
+Step '9. Removing RoadPro and Project Folder Manager'
 # 9. removing RoadPro and Project Folder Manager, keeping its settings
 Set-Content -Path (Join-Path $pfm 'Project_Folder_Manager_config.txt') -Value 'ROOT=D:\Projects'
 $r = Toolkit 'uninstall' 'folder-manager'
@@ -199,6 +238,7 @@ Check ($r.ok -and -not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationP
 $log = Join-Path $home_ 'toolkit.log'
 Check ((Test-Path $log) -and ((Get-Content $log -Raw) -match 'sha256 [0-9a-f]{64}')) 'every job is in toolkit.log'
 
+Step '10. The automatic update, with nobody pressing anything'
 # 10. the automatic update, once, as the Toolkit does when it starts and every 4 hours (--auto-update
 #     runs the same plan and installer). Slope Calculator is set back to 1.0.2; the feed says Excel to
 #     KML and Traverse & Level have newer versions too, with Traverse & Level set to Ask me.
@@ -223,6 +263,7 @@ Check ($after.tools.slope.version -eq $want['slope'] -and $after.tools.'excel-to
 Check (-not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle'))) 'a tool that isn''t installed is never installed by itself'
 StopTools
 
+Step '11. Start with Windows and the tray'
 # 11. Start with Windows, and the tray
 $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $out = Join-Path $work 'result-start.json'
@@ -241,22 +282,24 @@ Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) '
 $null = $p.CloseMainWindow()
 Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -eq 0 } 20) 'closing the window hides it'
 Start-Sleep -Seconds 2
-Shot $TrayShot 'the desktop after closing (the Toolkit in the tray, with its notification)'
+Shot 'tray' 'the desktop after closing the window: the Toolkit in the tray, with its notification' -Plain
 $p.Refresh()
 Check (-not $p.HasExited) 'and the Toolkit keeps running in the tray'
 Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 
+Step '12. Open the Toolkit'
 # 12. open the Toolkit
 $p = Start-Process -FilePath $exe -PassThru
 Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 -and $p.MainWindowTitle -eq 'Survey Toolkit' } 30) 'opens a window titled "Survey Toolkit"'
 Start-Sleep -Seconds 8
 Check (-not $p.HasExited) 'still running after 8 seconds'
-Shot $Screenshot 'the screen shows a drawn window, not a blank one'
+Shot 'toolkit' 'the Toolkit''s window: the sign-in'
 Start-Process -FilePath $exe
 Start-Sleep -Seconds 5
 Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'a second start leaves one copy'
 
+Step '13. The workspace: a web app inside the Toolkit'
 # 13. the workspace: Slope Calculator's web app inside the Toolkit's window (Microsoft Edge WebView2)
 Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
@@ -265,15 +308,75 @@ Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 -and $p.MainWindowTitle
 Check (WaitFor { Test-Path (Join-Path $home_ 'WebView') } 30) 'WebView2 runs, keeping its data in the Toolkit''s folder'
 Start-Sleep -Seconds 20 # the web app loads from exceltokml.com
 Check (-not $p.HasExited) 'still running with the web app inside'
-Shot $Workspace 'the web app is drawn inside the window'
+Shot 'workspace' 'Slope Calculator''s web app inside the Toolkit''s window'
 
-# 14. uninstall the Toolkit; the tools stay
+Step '14. The Toolkit updates itself'
+# 14. its self-updater downloads the new installer, checks its SHA-256 and runs it with /S /UPDATE
+#     while the Toolkit is open; the installer closes it, installs, and opens the new version
+Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+$running = Start-Process -FilePath $exe -PassThru
+Check (WaitFor { $running.Refresh(); $running.MainWindowHandle -ne 0 } 30) 'the Toolkit is open'
+$code = RunAndWait $Installer @('/S', '/UPDATE')
+Check ($code -eq 0) 'the new version installs while the Toolkit is open (/S /UPDATE, as its self-updater runs it)'
+Check (WaitFor { $running.Refresh(); $running.HasExited } 30) 'the old copy is closed'
+Check (WaitFor { $null -ne (Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $running.Id -and $_.MainWindowHandle -ne 0 }) } 30) 'and the new one opens by itself'
+Check ($null -ne (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue)) 'Start with Windows stays on through the update'
+Start-Sleep -Seconds 6
+Shot 'after-self-update' 'the Toolkit, open again after updating itself'
+Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+
+Step '15. The Toolkit removes the last tools'
+# 15. Excel to KML and Traverse & Level (RoadPro, Project Folder Manager and Traverse & Level were
+#     removed once already); Slope Calculator stays, to show that uninstalling the Toolkit keeps it
+foreach ($id in 'excel-to-kml', 'traverse') {
+  $r = Toolkit 'uninstall' $id
+  Check $r.ok "the Toolkit uninstalls $id with its own uninstaller"
+}
+$left = Detect 'after-removing'
+Check ($null -eq $left.tools.'excel-to-kml'.version -and $null -eq $left.tools.traverse.version) 'and finds them gone'
+
+Step '16. Uninstall the Toolkit: the tools stay'
+# 16. uninstall the Toolkit; the tools stay
+$prefs = Join-Path $env:APPDATA 'Excel to KML\Survey Toolkit'
+Write-Host "  settings folder before uninstalling: $(if (Test-Path $prefs) { 'there' } else { 'not made' })"
 $code = RunAndWait (Join-Path $dir 'Uninstall.exe') @('/S')
 Check (WaitFor { -not (Test-Path $dir) } 30) 'uninstall removes the Program folder'
 Check (-not (Test-Path $key)) 'uninstall removes it from Settings > Apps'
 Check ($null -eq (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall removes Start with Windows'
 Check (-not (Get-Process SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall closes the Toolkit'
 Check (-not (Test-Path (Join-Path $home_ 'WebView'))) 'uninstall removes the web apps'' browser data (their sign-in)'
+Check (-not (Test-Path $prefs)) 'uninstall removes the Toolkit''s settings and sign-in'
+Check (-not (Test-Path (Join-Path $home_ 'toolkit.log'))) 'uninstall removes the Toolkit''s log'
 Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'the tools stay (Project Folder Manager''s settings are still there)'
 Check (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SlopeCalculator') 'the tools stay (Slope Calculator is still installed)'
+
+Step '17. Uninstall everything: the PC is clean'
+# 17. Slope Calculator with its own uninstaller, as from Settings > Apps; then nothing is left
+$apps = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+$slope = Get-ItemProperty (Join-Path $apps 'SlopeCalculator')
+$null = RunAndWait (Join-Path $slope.InstallLocation 'Uninstall.exe') @('/S')
+Check (WaitFor { -not (Test-Path (Join-Path $apps 'SlopeCalculator')) } 60) 'Slope Calculator is removed with its own uninstaller'
+foreach ($k in 'ExcelToKMLPro', 'TraversePro', 'SlopeCalculator', 'SurveyToolkit') {
+  Check (-not (Test-Path (Join-Path $apps $k))) "nothing in Settings > Apps: no $k"
+}
+# what each program's own uninstaller leaves is that program's business: noted, not failed
+foreach ($t in @(@{ f = 'ExcelToKMLPro'; exe = 'ExcelToKML.exe' }, @{ f = 'TraversePro'; exe = 'TraverseLevel.exe' }, @{ f = 'SlopeCalculator'; exe = 'SlopeCalculator.exe' })) {
+  $d = Join-Path $env:LOCALAPPDATA $t.f
+  Check (WaitFor { -not (Test-Path (Join-Path $d $t.exe)) } 60) "no $($t.exe) left"
+  $files = @(Get-ChildItem $d -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring($d.Length + 1) })
+  if ($files.Count -eq 0) { Check $true "no files left in %LOCALAPPDATA%\$($t.f)" }
+  else { Note "$($files.Count) file(s) of the program's own left in %LOCALAPPDATA%\$($t.f) by its uninstaller: $(($files | Select-Object -First 5) -join ', ')" }
+}
+Check (-not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle'))) 'no RoadPro in AutoCAD''s plug-ins'
+Check (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Survey Toolkit'))) 'no Survey Toolkit in the Start menu'
+Check (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Survey Toolkit.lnk'))) 'no Survey Toolkit shortcut on the desktop'
+Check ($null -eq (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue)) 'nothing starts with Windows'
+Check (-not (Get-Process SurveyToolkit, ExcelToKML, TraverseLevel, SlopeCalculator -ErrorAction SilentlyContinue)) 'nothing running'
+$kept = @(Get-ChildItem $home_ -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring($home_.Length + 1) })
+Write-Host "  left in %LOCALAPPDATA%\Survey Toolkit: $($kept -join ', ')"
+Check (($kept.Count -eq 1) -and ($kept[0] -eq 'apps\Project Folder Manager\Project_Folder_Manager_config.txt')) 'in %LOCALAPPDATA%\Survey Toolkit only the user''s own Project Folder Manager settings are kept, on purpose'
+Shot 'clean' 'the desktop at the end: everything removed' -Plain
+Summary "`n**All good.**"
 Write-Host 'Survey Toolkit on Windows: all good'

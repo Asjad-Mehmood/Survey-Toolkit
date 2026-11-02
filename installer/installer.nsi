@@ -2,7 +2,8 @@
 ; Per user, no administrator rights: installs to %LOCALAPPDATA%\Survey Toolkit\Program, adds Start
 ; menu and desktop shortcuts and an entry in Settings -> Apps. Silent with /S (the self-updater uses
 ; /S /UPDATE and the Toolkit is opened again afterwards).
-; Uninstalling also removes "Start with Windows" (the SurveyToolkit value under HKCU\...\Run).
+; Uninstalling also removes "Start with Windows" (the SurveyToolkit value under HKCU\...\Run), the
+; Toolkit's settings and sign-in, and its log.
 ; The tools the Toolkit installs (from T3) keep their own installers and uninstallers; uninstalling
 ; the Toolkit removes only its Program folder and leaves the tools where they are.
 Unicode true
@@ -95,7 +96,14 @@ Section "Uninstall"
   ; the web apps' browser data (their sign-in) and the downloads folder
   RMDir /r "$LOCALAPPDATA\Survey Toolkit\WebView"
   RMDir /r "$LOCALAPPDATA\Survey Toolkit\downloads"
-  ; the Survey Toolkit folder goes too, but only when nothing else is left in it
+  ; its log, and its settings with the sign-in (%APPDATA%\Excel to KML\Survey Toolkit, where Flutter
+  ; keeps them); the Excel to KML folder only when no other program of ours uses it
+  Delete "$LOCALAPPDATA\Survey Toolkit\toolkit.log"
+  Delete "$LOCALAPPDATA\Survey Toolkit\toolkit.log.1"
+  RMDir /r "$APPDATA\Excel to KML\Survey Toolkit"
+  RMDir "$APPDATA\Excel to KML"
+  ; the Survey Toolkit folder goes too, but only when nothing else is left in it (the user's own
+  ; Project Folder Manager settings file is kept on purpose)
   RMDir "$LOCALAPPDATA\Survey Toolkit"
   DeleteRegKey HKCU "${KEY}"
   DeleteRegKey HKCU "Software\SurveyToolkit"

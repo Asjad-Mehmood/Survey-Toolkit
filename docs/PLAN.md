@@ -230,6 +230,29 @@ On GitHub's Windows machines, on every change:
 Screenshots of each step are kept as an artifact. There are also unit tests for the feed and
 status logic.
 
+**As built:** the **Check** workflow's Windows job (`tool/windows_check.ps1`) on every push and
+pull request, 17 steps on a clean Windows PC with the tools' real downloads:
+
+1. install the Toolkit; 2. it finds no tools; 3. a feed like the website's; 4. it installs all
+five; 5. it updates Slope Calculator 1.0.2; 6. it leaves an open tool alone; 7. it refuses a
+wrong SHA-256; 8. it finds every version; 9. it removes RoadPro and Project Folder Manager,
+keeping the settings file; 10. the automatic update with nobody pressing anything; 11. Start
+with Windows and the tray; 12. the Toolkit's window; 13. a web app inside it; 14. **the Toolkit
+updates itself** (its installer with `/S /UPDATE` while it is open: the old copy closes, the new
+one opens, Start with Windows stays); 15. it removes the last tools; 16. uninstalling the
+Toolkit removes its files, entry, Start with Windows, the web apps' sign-in, **its own sign-in
+and log**, and keeps the tools; 17. **the PC is clean**: nothing in Settings > Apps, no
+programs, shortcuts, start-up entry or running process; only the user's Project Folder Manager
+settings file, kept on purpose. What another program's own uninstaller leaves is noted, not
+failed.
+
+- Every check is listed on the run's **summary page**, step by step; a screenshot is taken at
+  each step that shows something (artifact `windows-screenshots`).
+- `test/packaging_test.dart` checks that the uninstaller removes every place the Toolkit writes
+  to (by the names the code and the runner use), so nothing is left on a tester's PC.
+- Found by it: the uninstaller left the Toolkit's settings, with the sign-in, in
+  `%APPDATA%\Excel to KML\Survey Toolkit`, and its log. It now removes both.
+
 ### T8: Hidden beta page and the front page
 
 - `/toolkit-beta`: a product page and a Download button, for testers only.
