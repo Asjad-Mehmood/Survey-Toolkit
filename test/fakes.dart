@@ -17,6 +17,7 @@ import 'package:survey_toolkit/src/toolkit/feed.dart';
 import 'package:survey_toolkit/src/toolkit/installer.dart';
 import 'package:survey_toolkit/src/toolkit/toolkit_model.dart';
 import 'package:survey_toolkit/src/ui/settings.dart';
+import 'package:survey_toolkit/src/update/background.dart';
 import 'package:survey_toolkit/src/workspace/app_view.dart';
 import 'package:survey_toolkit/src/workspace/apps.dart';
 
@@ -164,6 +165,7 @@ class Harness {
     ToolInstaller? installer,
     bool lookOnly = false,
   }) {
+    background = Background(tray: tray, startup: startup);
     account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
     this.installer = lookOnly ? null : installer ?? FakeInstaller();
     model = ToolkitModel(account: account, store: store, detector: detector ?? typicalPc(), installer: this.installer);
@@ -184,9 +186,19 @@ class Harness {
   late final Account account;
   late final ToolkitModel model;
   late final AppSettings settings;
+  final tray = FakeTray();
+  final startup = FakeStartup();
+  late final Background background;
 
   // no self-update check: on Windows it would leave its timer running after the test
-  Widget get app => ToolkitApp(account: account, model: model, settings: settings, checkUpdates: false, views: _view);
+  Widget get app => ToolkitApp(
+    account: account,
+    model: model,
+    settings: settings,
+    checkUpdates: false,
+    views: _view,
+    background: background,
+  );
 }
 
 /// A store as if this account signed in on this PC before
@@ -199,5 +211,40 @@ Store signedInStore({String beta = 'tester'}) {
 Future<void> settle(WidgetTester t) async {
   for (var i = 0; i < 20; i++) {
     await t.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// The tray icon: what it was asked to do
+class FakeTray implements Tray {
+  final notes = <String>[];
+  bool? kept;
+  void Function()? checkNow;
+  bool removed = false;
+
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> keepInTray(bool on) async => kept = on;
+  @override
+  Future<void> notify(String title, String text) async => notes.add('$title: $text');
+  @override
+  Future<void> remove() async => removed = true;
+  @override
+  set onCheckNow(void Function()? f) => checkNow = f;
+}
+
+/// The Run value, in memory
+class FakeStartup implements StartWithWindows {
+  bool on = false;
+  bool works = true;
+  final sets = <bool>[];
+
+  @override
+  Future<bool> isOn() async => on;
+  @override
+  Future<bool> set(bool v) async {
+    sets.add(v);
+    if (works) on = v;
+    return works;
   }
 }

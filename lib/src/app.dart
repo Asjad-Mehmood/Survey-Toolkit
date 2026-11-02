@@ -1,4 +1,5 @@
-// The Toolkit: sign in first, then the beta list, then the Tools page.
+// The Toolkit: sign in first, then the beta list, then the workspace (the Tools page and the web
+// apps). While a tester is signed in, the automatic updates run (lib/src/update/auto_update.dart).
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,8 @@ import 'screens/sign_in_screen.dart';
 import 'toolkit/toolkit_model.dart';
 import 'ui/settings.dart';
 import 'ui/theme.dart';
+import 'update/auto_update.dart';
+import 'update/background.dart';
 import 'update/updater.dart';
 import 'workspace/app_view.dart';
 import 'workspace/workspace_shell.dart';
@@ -22,10 +25,14 @@ class ToolkitApp extends StatelessWidget {
     required this.settings,
     this.checkUpdates = true,
     this.views = webView2Factory,
+    this.background,
   });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
+
+  /// The tray and Start with Windows (none in tests unless given)
+  final Background? background;
 
   /// How the workspace shows a web app (WebView2; a stand-in in tests)
   final AppViewFactory views;
@@ -42,7 +49,14 @@ class ToolkitApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: settings.themeMode,
-      home: _Gate(account: account, model: model, settings: settings, checkUpdates: checkUpdates, views: views),
+      home: _Gate(
+        account: account,
+        model: model,
+        settings: settings,
+        checkUpdates: checkUpdates,
+        views: views,
+        background: background ?? Background(tray: NoTray(), startup: _NoStartup()),
+      ),
     ),
   );
 }
@@ -54,12 +68,14 @@ class _Gate extends StatefulWidget {
     required this.settings,
     required this.checkUpdates,
     required this.views,
+    required this.background,
   });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
   final bool checkUpdates;
   final AppViewFactory views;
+  final Background background;
 
   @override
   State<_Gate> createState() => _GateState();
@@ -69,17 +85,27 @@ class _GateState extends State<_Gate> {
   bool _started = false;
   late bool _updateChecked = !widget.checkUpdates;
   late final AppLifecycleListener _life;
+  late final AutoUpdater _auto = AutoUpdater(
+    model: widget.model,
+    background: widget.background,
+    alsoCheck: widget.checkUpdates ? _checkSelf : null,
+  );
+
+  Future<void> _checkSelf() async {
+    if (mounted) await checkForUpdate(context, tray: widget.background.tray, wait: Duration.zero);
+  }
 
   @override
   void initState() {
     super.initState();
     unawaited(widget.account.restore());
+    unawaited(widget.background.load());
     // back at the front after a while: look again (a tool may have been installed meanwhile)
     _life = AppLifecycleListener(
       onResume: () {
         final at = widget.model.checkedAt;
         if (_started && (at == null || DateTime.now().difference(at) > const Duration(minutes: 10))) {
-          unawaited(widget.model.refresh());
+          unawaited(_auto.check());
         }
       },
     );
@@ -88,7 +114,14 @@ class _GateState extends State<_Gate> {
   @override
   void dispose() {
     _life.dispose();
+    _auto.dispose();
     super.dispose();
+  }
+
+  /// Signed out, or not on the beta list: no automatic updates
+  void _stopped() {
+    if (_started) _auto.stop();
+    _started = false;
   }
 
   @override
@@ -97,21 +130,31 @@ class _GateState extends State<_Gate> {
     if (!_updateChecked) {
       _updateChecked = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(checkForUpdate(context));
+        if (mounted) unawaited(checkForUpdate(context, tray: widget.background.tray));
       });
     }
     if (a.checking || !a.signedIn) {
-      _started = false;
+      _stopped();
       return SignInScreen(account: a, settings: widget.settings);
     }
     if (a.beta != BetaAccess.tester) {
-      _started = false;
+      _stopped();
       return BetaScreen(account: a);
     }
     if (!_started) {
       _started = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(widget.model.refresh()));
+      // checks now, then every 4 hours
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _started) _auto.start();
+      });
     }
-    return WorkspaceShell(account: a, model: widget.model, settings: widget.settings, views: widget.views);
+    return WorkspaceShell(account: a, model: widget.model, settings: widget.settings, views: widget.views, auto: _auto);
   }
+}
+
+class _NoStartup implements StartWithWindows {
+  @override
+  Future<bool> isOn() async => false;
+  @override
+  Future<bool> set(bool on) async => false;
 }

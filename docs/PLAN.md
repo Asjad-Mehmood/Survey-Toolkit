@@ -159,6 +159,38 @@ check shows a web app drawn inside the window.
 
 **Done when:** a new version of any tool reaches a test PC with nobody pressing anything.
 
+**As built (v0.4):**
+
+- **When:** as the Toolkit opens (once a tester is signed in), every 4 hours while it runs (in
+  the tray too), from the tray's **Check for updates now**, and with **Check again** on Home.
+  Each check reads the feed, looks on the PC, then updates every tool that is due, one at a time,
+  with the same download, SHA-256 check and installer as the Update button.
+- **Automatic** (the default) **or Ask me**, per tool, in the new **Updates** section on Home.
+  Only tools that are installed are updated: nothing is ever installed by itself.
+- **A tool that is open** is never updated. Nothing is shown on its card; it is tried again
+  after 30 minutes. The card says "Updates by itself when it isn't open".
+- **A failed update** is tried at the next check. After 3 failures at the same version the
+  Toolkit stops, sends one notification, and leaves it to the Update button.
+- **Excel to KML and Traverse & Level** (set to Automatic): opening them from the Toolkit (their
+  card's Open, or the workspace's Windows app button) updates them first, and their installer
+  opens the new version.
+- **Notifications** come from the Toolkit's tray icon, so Windows 10 and 11 show them as ordinary
+  notifications: "Slope Calculator updated to 1.0.3", or "Updated: …" for several.
+- **The tray icon** (the Windows program's own, `windows/runner/tray.cpp`): click to open; right
+  click for Open, Check for updates now and Quit.
+- **Start with Windows and keep running in the tray**, off by default: a `SurveyToolkit` value
+  under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` that starts it with `--tray` (no
+  window). With it on, closing the window keeps the Toolkit in the tray, and says so the first
+  time. Opening the Toolkit again shows the window. The uninstaller removes the value.
+- **The Toolkit's own update** is looked for with each check too, and asked about once per
+  version, with a notification in case the window is hidden.
+- **The website is told** of each automatic update (`message: "automatic"`) for Admin (T6).
+- **Tests:** the rules, the scheduler, retries, giving up, Ask me, open-to-update, the Updates
+  section and the switch. The Windows check runs the automatic update once (`--auto-update`) on a
+  real PC: Slope Calculator 1.0.2 is updated by itself, Excel to KML and a tool set to Ask me wait,
+  nothing opens; then Start with Windows, the hidden start, the second start showing the window,
+  and closing into the tray.
+
 ### T6: Admin
 
 A separate **Toolkit (beta)** tab in the website's Admin:
@@ -167,6 +199,22 @@ A separate **Toolkit (beta)** tab in the website's Admin:
 - PCs: each tester's PCs and the tool versions on each;
 - updates done and failed, with the reason;
 - Toolkit downloads.
+
+**As built (website PR #97):** a page of its own, **`/toolkit-beta/admin`**, in the main Admin's
+frame and sign-in, rather than a tab inside `app/admin`, so the main Admin is unchanged and the
+test can be removed without touching it. Admins only; signed out goes to the sign-in, anyone else
+gets "not found"; never indexed. A link to it from the main Admin can come at launch (T10).
+
+- **Overview:** testers, PCs seen in 7 days, updates and failures in 30 days (and how many were
+  automatic), Toolkit downloads (from its GitHub releases), each tool's latest version against
+  the testers' PCs, the latest failures.
+- **Testers:** add (with a note) and remove; whether they have an account yet, their PCs, last
+  sign-in, who added them.
+- **PCs:** Windows, Toolkit and tool versions per PC (older ones marked), last seen, the PC's own
+  activity; forget a PC.
+- **Activity:** the newest 300 events, filtered by failed, automatic, updated, installed,
+  uninstalled and tool, with the reason.
+- `GET /api/toolkit/admin` and `DELETE /api/toolkit/admin?device=` (admins only); no new tables.
 
 ### T7: Automatic tests
 

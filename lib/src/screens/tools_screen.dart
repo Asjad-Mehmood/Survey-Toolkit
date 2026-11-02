@@ -1,5 +1,6 @@
 // The Tools page: one card per tool with what is installed on this PC, the latest version and
-// what to do. T2 only looks: "Get it" and "Get the update" open the tool's page in the browser.
+// what to do (Install, Update, Open, Uninstall), then the Updates section (T5): running in the
+// background, and Automatic or Ask me for each tool.
 import 'dart:async';
 
 import 'package:file_selector/file_selector.dart';
@@ -15,12 +16,26 @@ import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
+import '../update/auto_update.dart';
+import '../update/update_prefs.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key, required this.model, required this.account, required this.settings, this.switcher});
+  const ToolsScreen({
+    super.key,
+    required this.model,
+    required this.account,
+    required this.settings,
+    this.switcher,
+    this.auto,
+  });
   final ToolkitModel model;
   final Account account;
   final AppSettings settings;
+
+  /// The automatic updates: "Check again" updates what is set to Automatic too
+  final AutoUpdater? auto;
+
+  Future<void> _check() => auto?.check(self: false) ?? model.refresh();
 
   /// The workspace's app grid button, in the header
   final Widget? switcher;
@@ -56,7 +71,7 @@ class ToolsScreen extends StatelessWidget {
           ?switcher,
           IconButton(
             tooltip: 'Check again',
-            onPressed: model.busy ? null : model.refresh,
+            onPressed: model.busy ? null : _check,
             icon: const Icon(Icons.refresh_rounded),
           ),
           IconButton(
@@ -83,7 +98,7 @@ class ToolsScreen extends StatelessWidget {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: model.refresh,
+        onRefresh: _check,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
           children: [
@@ -100,7 +115,7 @@ class ToolsScreen extends StatelessWidget {
                           ? 'Beta, look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
                                 'the tool\'s page in your browser.'
                           : 'Beta: each tool is installed with its own official installer, checked by its SHA-256 '
-                                'first. A tool that is open is never updated: close it, then press Update.',
+                                'first. A tool that is open is never updated: it is updated once it is closed.',
                     ),
                     if (model.problem != null) ...[
                       const SizedBox(height: 10),
@@ -126,6 +141,10 @@ class ToolsScreen extends StatelessWidget {
                         );
                       },
                     ),
+                    if (auto != null && model.installer != null) ...[
+                      const SizedBox(height: 18),
+                      UpdatesSection(model: model, auto: auto!),
+                    ],
                     const SizedBox(height: 18),
                     Text(
                       'Version $appVersion · $appPublisher',
@@ -419,6 +438,10 @@ class ToolCard extends StatelessWidget {
                 style: TextStyle(color: c.muted, fontSize: 13),
               ),
             ],
+            if (waitText(model, tool, state) case final wait?) ...[
+              const SizedBox(height: 4),
+              Text(wait, style: TextStyle(color: c.muted, fontSize: 13)),
+            ],
             // the website's notes on a tool are for the owner; a user sees them only when the download
             // can't be checked
             if (tool.download == null && !model.noFeed)
@@ -478,6 +501,127 @@ class _JobBar extends StatelessWidget {
               child: LinearProgressIndicator(value: f, minHeight: 6, color: c.accent, backgroundColor: c.cardSoft),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Under an update that is set to Automatic: when it will happen
+String? waitText(ToolkitModel model, FeedTool tool, ToolState state) {
+  if (model.installer == null || state != ToolState.updateAvailable || model.jobTool == tool.id) return null;
+  if (model.updates.modeOf(tool.id) != UpdateMode.automatic || tool.download == null) return null;
+  return tool.install.opensAfterSilentInstall
+      ? 'Updates by itself the next time you open it from the Toolkit.'
+      : 'Updates by itself when it isn\'t open.';
+}
+
+/// Running in the background, and each tool's Automatic or Ask me
+class UpdatesSection extends StatelessWidget {
+  const UpdatesSection({super.key, required this.model, required this.auto});
+  final ToolkitModel model;
+  final AutoUpdater auto;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final bg = auto.background;
+    return ListenableBuilder(
+      listenable: Listenable.merge([bg, model.updates, auto]),
+      builder: (context, _) => Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.autorenew_rounded, color: c.ink),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text('Updates', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
+                  ),
+                  if (auto.updating)
+                    const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'The Toolkit checks when it opens and every 4 hours while it runs. A tool set to Automatic is '
+                'updated as soon as it is closed, and a Windows notification says so.',
+                style: TextStyle(color: c.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              SwitchListTile(
+                key: const ValueKey('background switch'),
+                contentPadding: EdgeInsets.zero,
+                value: bg.on,
+                onChanged: !bg.known || bg.saving ? null : (v) => bg.setOn(v),
+                title: const Text(
+                  'Start with Windows and keep running in the tray',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  bg.on
+                      ? 'Closing the window keeps the Toolkit in the tray, so updates go on. Quit it from the tray icon.'
+                      : 'Off: updates happen only while the Toolkit is open.',
+                ),
+              ),
+              if (bg.problem != null) Notice(bg.problem!, kind: NoticeKind.warning),
+              Divider(color: c.line, height: 20),
+              for (final t in model.tools)
+                if (model.installedOf(t.id)?.found ?? false) _ModeRow(tool: t, model: model),
+              if (!model.tools.any((t) => model.installedOf(t.id)?.found ?? false))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    'Once a tool is installed, choose here how it is updated.',
+                    style: TextStyle(color: c.muted, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeRow extends StatelessWidget {
+  const _ModeRow({required this.tool, required this.model});
+  final FeedTool tool;
+  final ToolkitModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final mode = model.updates.modeOf(tool.id);
+    final picker = SegmentedButton<UpdateMode>(
+      key: ValueKey('mode ${tool.id}'),
+      showSelectedIcon: false,
+      segments: [for (final m in UpdateMode.values) ButtonSegment(value: m, label: Text(m.label))],
+      selected: {mode},
+      onSelectionChanged: (s) => model.updates.setMode(tool.id, s.first),
+    );
+    final name = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tool.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (tool.install.opensAfterSilentInstall && mode == UpdateMode.automatic)
+          Text('When you open it from the Toolkit', style: TextStyle(color: c.muted, fontSize: 12.5)),
+      ],
+    );
+    // side by side, or the choice under the name when narrow
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 6,
+          children: [name, picker],
         ),
       ),
     );

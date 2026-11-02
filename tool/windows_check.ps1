@@ -8,11 +8,16 @@
 #   7. a download with the wrong SHA-256 is refused and never run;
 #   8. it finds every one, with the right version and the program to open;
 #   9. it removes RoadPro and Project Folder Manager, keeping the settings file;
-#  10. open the Toolkit: a drawn window with the sign-in, a screenshot, one copy on a second start;
-#  11. the workspace: Slope Calculator's web app inside the Toolkit's window (WebView2), a screenshot;
-#  12. uninstall the Toolkit: its folder, entry and the web apps' browser data go, the tools stay.
-#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png windows-workspace.png
-param([Parameter(Mandatory)] [string] $Installer, [string] $Screenshot = 'windows-check.png', [string] $Workspace = 'windows-workspace.png')
+#  10. the automatic update (T5): an older Slope Calculator is updated with nobody pressing anything;
+#      Excel to KML waits until it is opened from the Toolkit, a tool set to Ask me waits too;
+#  11. Start with Windows: the Run value; started with --tray only the tray icon, no window; a second
+#      start shows the window; closing it keeps the Toolkit running in the tray (a screenshot);
+#  12. open the Toolkit: a drawn window with the sign-in, a screenshot, one copy on a second start;
+#  13. the workspace: Slope Calculator's web app inside the Toolkit's window (WebView2), a screenshot;
+#  14. uninstall the Toolkit: its folder, entry, Start with Windows and the web apps' browser data go,
+#      the tools stay.
+#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png windows-workspace.png windows-tray.png
+param([Parameter(Mandatory)] [string] $Installer, [string] $Screenshot = 'windows-check.png', [string] $Workspace = 'windows-workspace.png', [string] $TrayShot = 'windows-tray.png')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $home_ = Join-Path $env:LOCALAPPDATA 'Survey Toolkit'
@@ -80,9 +85,9 @@ function Sha([string] $f) { (Get-FileHash -Algorithm SHA256 -Path $f).Hash.ToLow
 $tools = @()
 $want = @{}
 $programs = @(
-  @{ id = 'excel-to-kml'; name = 'Excel to KML'; repo = 'Asjad-Mehmood/kml-convertor'; file = 'ExcelToKML-Setup.exe'; key = 'ExcelToKMLPro'; exe = @('ExcelToKML.exe', 'ExcelToKMLPro.exe') },
-  @{ id = 'traverse'; name = 'Traverse & Level'; repo = 'Asjad-Mehmood/Traiverse'; file = 'TraverseLevel-Setup.exe'; key = 'TraversePro'; exe = @('TraverseLevel.exe', 'TraversePro.exe') },
-  @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe') }
+  @{ id = 'excel-to-kml'; name = 'Excel to KML'; repo = 'Asjad-Mehmood/kml-convertor'; file = 'ExcelToKML-Setup.exe'; key = 'ExcelToKMLPro'; exe = @('ExcelToKML.exe', 'ExcelToKMLPro.exe'); opens = $true },
+  @{ id = 'traverse'; name = 'Traverse & Level'; repo = 'Asjad-Mehmood/Traiverse'; file = 'TraverseLevel-Setup.exe'; key = 'TraversePro'; exe = @('TraverseLevel.exe', 'TraversePro.exe'); opens = $true },
+  @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe'); opens = $false }
 )
 foreach ($p in $programs) {
   $rel = Invoke-RestMethod -Headers $api -Uri "https://api.github.com/repos/$($p.repo)/releases/latest"
@@ -93,7 +98,8 @@ foreach ($p in $programs) {
   $want[$p.id] = $v
   $tools += @{ id = $p.id; name = $p.name; platform = 'Windows'; page = 'https://www.exceltokml.com/'; version = $v
     download = @{ url = $asset.browser_download_url; file = $p.file; size = $asset.size; sha256 = (Sha $f) }
-    install = @{ kind = 'installer'; registryKey = $p.key; exe = $p.exe; silentArgs = @('/S') } }
+    # as the website's feed says (lib/toolkit/tools.ts): which installers open the program afterwards
+    install = @{ kind = 'installer'; registryKey = $p.key; exe = $p.exe; silentArgs = @('/S'); opensAfterSilentInstall = $p.opens } }
 }
 $zips = @(
   @{ id = 'roadpro'; name = 'RoadPro'; url = 'https://www.exceltokml.com/roadpro/RoadPro.zip'; file = 'RoadPro.zip'
@@ -193,7 +199,55 @@ Check ($r.ok -and -not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationP
 $log = Join-Path $home_ 'toolkit.log'
 Check ((Test-Path $log) -and ((Get-Content $log -Raw) -match 'sha256 [0-9a-f]{64}')) 'every job is in toolkit.log'
 
-# 10. open the Toolkit
+# 10. the automatic update, once, as the Toolkit does when it starts and every 4 hours (--auto-update
+#     runs the same plan and installer). Slope Calculator is set back to 1.0.2; the feed says Excel to
+#     KML and Traverse & Level have newer versions too, with Traverse & Level set to Ask me.
+$null = RunAndWait $old @('/S')
+StopTools
+Check ((Detect 'before-auto').tools.slope.version -eq '1.0.2') 'Slope Calculator 1.0.2 again'
+$auto = Get-Content $feed -Raw | ConvertFrom-Json
+foreach ($t in $auto.tools) { if ($t.id -in 'excel-to-kml', 'traverse') { $t.version = '99.0.0' } }
+$autoFeed = Join-Path $work 'feed-auto.json'
+$auto | ConvertTo-Json -Depth 6 | Set-Content -Path $autoFeed -Encoding utf8
+$out = Join-Path $work 'result-auto.json'
+$code = RunAndWait $exe @('--auto-update', "--feed=$autoFeed", "--result=$out", '--ask=traverse')
+$r = Get-Content $out -Raw | ConvertFrom-Json
+Write-Host (Get-Content $out -Raw)
+Check ($code -eq 0 -and $r.updated.slope -eq $want['slope']) "Slope Calculator is updated to $($want['slope']) by itself"
+Check ($r.notification -eq "Slope Calculator updated to $($want['slope'])") "the notification: $($r.notification)"
+Check ($r.waiting.'excel-to-kml' -eq 'untilOpened') 'Excel to KML waits until it is opened from the Toolkit'
+Check ($r.waiting.traverse -eq 'askMe') 'Traverse & Level, set to Ask me, waits'
+Check (-not (Get-Process ExcelToKML, TraverseLevel -ErrorAction SilentlyContinue)) 'nothing opened by itself'
+$after = Detect 'after-auto'
+Check ($after.tools.slope.version -eq $want['slope'] -and $after.tools.'excel-to-kml'.version -eq $want['excel-to-kml']) 'Slope Calculator updated, Excel to KML left as it was'
+Check (-not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle'))) 'a tool that isn''t installed is never installed by itself'
+StopTools
+
+# 11. Start with Windows, and the tray
+$run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+$out = Join-Path $work 'result-start.json'
+$code = RunAndWait $exe @('--start-with-windows=on', "--result=$out")
+$value = (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue).SurveyToolkit
+Write-Host "  Run value: $value"
+Check ($code -eq 0 -and $value -eq "`"$exe`" --tray") 'Start with Windows: Windows runs the Toolkit in the tray at sign-in'
+$p = Start-Process -FilePath $exe -ArgumentList '--tray' -PassThru
+Start-Sleep -Seconds 10
+$p.Refresh()
+Check (-not $p.HasExited) 'started in the tray, it keeps running'
+Check ($p.MainWindowHandle -eq 0) 'with no window, only the tray icon'
+Start-Process -FilePath $exe
+Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 } 20) 'opening the Toolkit again shows its window'
+Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'still one copy'
+$null = $p.CloseMainWindow()
+Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -eq 0 } 20) 'closing the window hides it'
+Start-Sleep -Seconds 2
+Shot $TrayShot 'the desktop after closing (the Toolkit in the tray, with its notification)'
+$p.Refresh()
+Check (-not $p.HasExited) 'and the Toolkit keeps running in the tray'
+Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+
+# 12. open the Toolkit
 $p = Start-Process -FilePath $exe -PassThru
 Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 -and $p.MainWindowTitle -eq 'Survey Toolkit' } 30) 'opens a window titled "Survey Toolkit"'
 Start-Sleep -Seconds 8
@@ -203,7 +257,7 @@ Start-Process -FilePath $exe
 Start-Sleep -Seconds 5
 Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'a second start leaves one copy'
 
-# 11. the workspace: Slope Calculator's web app inside the Toolkit's window (Microsoft Edge WebView2)
+# 13. the workspace: Slope Calculator's web app inside the Toolkit's window (Microsoft Edge WebView2)
 Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 $p = Start-Process -FilePath $exe -ArgumentList '--preview=slope' -PassThru
@@ -213,10 +267,11 @@ Start-Sleep -Seconds 20 # the web app loads from exceltokml.com
 Check (-not $p.HasExited) 'still running with the web app inside'
 Shot $Workspace 'the web app is drawn inside the window'
 
-# 12. uninstall the Toolkit; the tools stay
+# 14. uninstall the Toolkit; the tools stay
 $code = RunAndWait (Join-Path $dir 'Uninstall.exe') @('/S')
 Check (WaitFor { -not (Test-Path $dir) } 30) 'uninstall removes the Program folder'
 Check (-not (Test-Path $key)) 'uninstall removes it from Settings > Apps'
+Check ($null -eq (Get-ItemProperty -Path $run -Name SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall removes Start with Windows'
 Check (-not (Get-Process SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall closes the Toolkit'
 Check (-not (Test-Path (Join-Path $home_ 'WebView'))) 'uninstall removes the web apps'' browser data (their sign-in)'
 Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'the tools stay (Project Folder Manager''s settings are still there)'

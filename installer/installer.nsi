@@ -2,6 +2,7 @@
 ; Per user, no administrator rights: installs to %LOCALAPPDATA%\Survey Toolkit\Program, adds Start
 ; menu and desktop shortcuts and an entry in Settings -> Apps. Silent with /S (the self-updater uses
 ; /S /UPDATE and the Toolkit is opened again afterwards).
+; Uninstalling also removes "Start with Windows" (the SurveyToolkit value under HKCU\...\Run).
 ; The tools the Toolkit installs (from T3) keep their own installers and uninstallers; uninstalling
 ; the Toolkit removes only its Program folder and leaves the tools where they are.
 Unicode true
@@ -98,4 +99,6 @@ Section "Uninstall"
   RMDir "$LOCALAPPDATA\Survey Toolkit"
   DeleteRegKey HKCU "${KEY}"
   DeleteRegKey HKCU "Software\SurveyToolkit"
+  ; "Start with Windows" (T5)
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "SurveyToolkit"
 SectionEnd

@@ -15,6 +15,7 @@ import '../account/account.dart';
 import '../account/api.dart';
 import '../brand.dart';
 import '../state/store.dart';
+import '../update/update_prefs.dart';
 import 'detect.dart';
 import 'feed.dart';
 import 'installer.dart';
@@ -29,6 +30,8 @@ class ToolkitModel extends ChangeNotifier {
     }
     final at = store.read(_checkedKey);
     checkedAt = at == null ? null : DateTime.tryParse(at);
+    // the cards say when an update happens by itself
+    updates.addListener(notifyListeners);
   }
 
   final Account account;
@@ -46,6 +49,9 @@ class ToolkitModel extends ChangeNotifier {
   static const folderKey = 'folder-manager-folder';
 
   Api get api => account.api;
+
+  /// Each tool's Automatic or Ask me (T5)
+  late final UpdatePrefs updates = UpdatePrefs(store);
 
   Feed? _feed;
 
@@ -158,8 +164,18 @@ class ToolkitModel extends ChangeNotifier {
     }
   }
 
-  /// Opens an installed program
+  /// Opening it from the Toolkit updates it first (Automatic, and its installer opens it anyway)
+  bool updatesOnOpen(FeedTool t) =>
+      installer != null && !jobRunning && updatesWhenOpened(t, stateOfTool(t), updates.modeOf(t.id));
+
+  /// Opens an installed program; one that [updatesOnOpen] is updated first, and its installer
+  /// opens the new version
   Future<bool> open(FeedTool t) async {
+    if (updatesOnOpen(t)) {
+      final r = await install(t, automatic: true);
+      if (r.ok) return true;
+      // open, or the update failed: the version that is there opens
+    }
     final program = _installed[t.id]?.program;
     if (program == null || !File(program).existsSync()) return false;
     try {
@@ -213,7 +229,8 @@ class ToolkitModel extends ChangeNotifier {
     return installer!.cannotUninstall(t, i);
   }
 
-  Future<JobResult> install(FeedTool t) async {
+  /// Installs or updates [t]; [automatic] when nobody pressed Update (T5)
+  Future<JobResult> install(FeedTool t, {bool automatic = false}) async {
     final before = _installed[t.id];
     final from = before != null && before.found ? before.version : null;
     return _job(
@@ -224,8 +241,10 @@ class ToolkitModel extends ChangeNotifier {
         'action': r.ok ? (from == null ? 'installed' : 'updated') : 'failed',
         'from': from ?? '',
         'to': r.version ?? t.version ?? '',
-        if (!r.ok) 'message': r.message,
+        if (!r.ok || automatic) 'message': [if (automatic) 'automatic', if (!r.ok) r.message].join(': '),
       },
+      // an automatic update that found the tool open says nothing on the card: it tries again later
+      showBlocked: !automatic,
     );
   }
 
@@ -251,8 +270,9 @@ class ToolkitModel extends ChangeNotifier {
   Future<JobResult> _job(
     FeedTool t,
     Future<JobResult> Function(ToolInstaller) work,
-    Map<String, Object?> Function(JobResult) event,
-  ) async {
+    Map<String, Object?> Function(JobResult) event, {
+    bool showBlocked = true,
+  }) async {
     final inst = installer;
     if (inst == null) return const JobResult.failed('Installing isn\'t available in this Toolkit.');
     if (jobRunning) return const JobResult.blocked('Another tool is being installed. Wait for it to finish.');
@@ -271,7 +291,7 @@ class ToolkitModel extends ChangeNotifier {
     } catch (_) {
       // shown as before; the next check looks again
     }
-    results[t.id] = r;
+    if (!r.blocked || showBlocked) results[t.id] = r;
     jobTool = null;
     jobProgress = null;
     notifyListeners();

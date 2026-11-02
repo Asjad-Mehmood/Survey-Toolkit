@@ -16,10 +16,11 @@ official download and installer. It changes nothing in those programs or on the 
 existing pages. See [docs/PLAN.md](docs/PLAN.md) for the phases and the separation rules, and
 [docs/TOOLS.md](docs/TOOLS.md) for how each program is found, installed, updated and removed.
 
-Status: **T4, workspace (v0.3).** One window like the Microsoft 365 app: Home with every tool
-(install, update, remove, checked by SHA-256), and Excel to KML, Traverse & Level and Slope
-Calculator running inside the Toolkit, signed in already. Not released yet: releases are made
-only when the owner says so, as GitHub pre-releases.
+Status: **T5, automatic updates (v0.4).** One window like the Microsoft 365 app: Home with every
+tool (install, update, remove, checked by SHA-256), and Excel to KML, Traverse & Level and Slope
+Calculator running inside the Toolkit, signed in already. The tools set to Automatic update by
+themselves, with a Windows notification, and the Toolkit can start with Windows in the tray. Not
+released yet: releases are made only when the owner says so, as GitHub pre-releases.
 
 ## Building
 

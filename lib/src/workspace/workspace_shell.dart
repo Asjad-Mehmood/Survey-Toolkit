@@ -15,6 +15,7 @@ import '../screens/tools_screen.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
 import '../ui/theme.dart';
+import '../update/auto_update.dart';
 import 'app_view.dart';
 import 'apps.dart';
 
@@ -25,11 +26,15 @@ class WorkspaceShell extends StatefulWidget {
     required this.model,
     required this.settings,
     required this.views,
+    this.auto,
   });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
   final AppViewFactory views;
+
+  /// The automatic updates, for the Tools page's Updates section
+  final AutoUpdater? auto;
 
   @override
   State<WorkspaceShell> createState() => _WorkspaceShellState();
@@ -87,7 +92,13 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final c = context.colors;
     final wide = MediaQuery.sizeOf(context).width >= 700;
     final pages = <Widget>[
-      ToolsScreen(model: widget.model, account: widget.account, settings: widget.settings, switcher: _switcher()),
+      ToolsScreen(
+        model: widget.model,
+        account: widget.account,
+        settings: widget.settings,
+        switcher: _switcher(),
+        auto: widget.auto,
+      ),
       for (final app in workspaceApps)
         _open[app.id] == null
             ? const SizedBox.shrink()
@@ -360,7 +371,17 @@ class _AppPanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: TextButton.icon(
-                onPressed: () => model!.open(tool),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (model!.updatesOnOpen(tool)) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Updating ${tool.name} to ${tool.version} before it opens…')),
+                    );
+                  }
+                  if (!await model.open(tool)) {
+                    messenger.showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
+                  }
+                },
                 icon: const Icon(Icons.desktop_windows_outlined, size: 18),
                 label: const Text('Windows app'),
               ),
