@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account/account.dart';
 import '../brand.dart';
 import '../toolkit/feed.dart';
+import '../toolkit/installer.dart';
 import '../toolkit/status.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
@@ -90,9 +91,12 @@ class ToolsScreen extends StatelessWidget {
                   children: [
                     _Summary(model: model),
                     const SizedBox(height: 14),
-                    const Notice(
-                      'Beta, look only: the Toolkit shows what is on this PC and what is new. It doesn\'t install '
-                      'or change anything yet. "Get it" opens the tool\'s page in your browser.',
+                    Notice(
+                      model.installer == null
+                          ? 'Beta, look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
+                                'the tool\'s page in your browser.'
+                          : 'Beta: each tool is installed with its own official installer, checked by its SHA-256 '
+                                'first. A tool that is open is never updated: close it, then press Update.',
                     ),
                     if (model.problem != null) ...[
                       const SizedBox(height: 10),
@@ -274,29 +278,72 @@ class ToolCard extends StatelessWidget {
       _ => latest == null ? 'Not on this PC' : 'Latest $latest',
     };
 
+    final job = model.jobTool == tool.id;
+    final result = model.results[tool.id];
+    final canInstall = model.canInstall(tool);
+    final uninstallBlock = model.cannotUninstall(tool);
+
+    Future<void> uninstall() async {
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Uninstall ${tool.name}?'),
+          content: Text(
+            tool.install.kind == 'installer'
+                ? '${tool.name} is removed with its own uninstaller, the same as from Windows Settings → Apps.'
+                : tool.install.kind == 'zip'
+                ? 'The program files are removed. Your settings file is kept, so a new install remembers them.'
+                : 'RoadPro is removed from AutoCAD. Roads already drawn stay in your drawings.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Uninstall')),
+          ],
+        ),
+      );
+      if (yes == true) await model.uninstall(tool);
+    }
+
     final buttons = <Widget>[
       if (installed?.program != null)
         FilledButton.icon(
-          onPressed: () async {
-            if (!await model.open(tool) && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
-            }
-          },
+          onPressed: job
+              ? null
+              : () async {
+                  if (!await model.open(tool) && context.mounted) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
+                  }
+                },
           icon: const Icon(Icons.launch_rounded, size: 18),
           label: const Text('Open'),
         ),
       if (state == ToolState.updateAvailable)
-        FilledButton.tonalIcon(
-          onPressed: () => _browse(context, tool.page),
-          icon: const Icon(Icons.system_update_alt_rounded, size: 18),
-          label: const Text('Get the update'),
-        ),
+        if (tool.download != null && model.installer != null)
+          FilledButton.tonalIcon(
+            onPressed: canInstall ? () => model.install(tool) : null,
+            icon: const Icon(Icons.system_update_alt_rounded, size: 18),
+            label: const Text('Update'),
+          )
+        else
+          FilledButton.tonalIcon(
+            onPressed: () => _browse(context, tool.page),
+            icon: const Icon(Icons.system_update_alt_rounded, size: 18),
+            label: const Text('Get the update'),
+          ),
       if (state == ToolState.notInstalled || state == ToolState.needsAutocad)
-        FilledButton.tonalIcon(
-          onPressed: () => _browse(context, tool.page),
-          icon: const Icon(Icons.download_rounded, size: 18),
-          label: const Text('Get it'),
-        ),
+        if (tool.download != null && model.installer != null)
+          FilledButton.tonalIcon(
+            onPressed: canInstall ? () => model.install(tool) : null,
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('Install'),
+          )
+        else
+          FilledButton.tonalIcon(
+            onPressed: () => _browse(context, tool.page),
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('Get it'),
+          ),
       if (tool.webApp != null)
         OutlinedButton.icon(
           onPressed: () => _browse(context, tool.webApp!),
@@ -307,12 +354,16 @@ class ToolCard extends StatelessWidget {
         TextButton(onPressed: () => _browse(context, tool.notes!), child: const Text('What\'s new')),
       if (tool.install.kind == 'zip' && state == ToolState.notInstalled)
         TextButton(
-          onPressed: () async {
-            final folder = await getDirectoryPath(confirmButtonText: 'Use this folder');
-            if (folder != null) await model.setFolderManagerFolder(folder);
-          },
+          onPressed: job
+              ? null
+              : () async {
+                  final folder = await getDirectoryPath(confirmButtonText: 'Use this folder');
+                  if (folder != null) await model.setFolderManagerFolder(folder);
+                },
           child: const Text('Already have it? Choose its folder'),
         ),
+      if (installed != null && installed.found && model.installer != null && uninstallBlock == null)
+        TextButton(onPressed: model.jobRunning ? null : uninstall, child: const Text('Uninstall')),
     ];
 
     return Card(
@@ -374,7 +425,54 @@ class ToolCard extends StatelessWidget {
                   style: TextStyle(color: c.muted, fontSize: 12.5, fontStyle: FontStyle.italic),
                 ),
               ],
+            if (job) ...[
+              const SizedBox(height: 14),
+              _JobBar(progress: model.jobProgress),
+            ] else if (result != null) ...[
+              const SizedBox(height: 12),
+              Notice(
+                result.message,
+                kind: result.ok
+                    ? NoticeKind.success
+                    : result.blocked
+                    ? NoticeKind.warning
+                    : NoticeKind.problem,
+              ),
+            ],
             if (buttons.isNotEmpty) ...[const SizedBox(height: 14), Wrap(spacing: 8, runSpacing: 8, children: buttons)],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the job on a card is doing: Downloading 42 %, Installing, Checking
+class _JobBar extends StatelessWidget {
+  const _JobBar({required this.progress});
+  final JobProgress? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final step = progress?.step ?? 'Starting';
+    final f = progress?.fraction;
+    return Semantics(
+      liveRegion: true,
+      label: f == null ? '$step…' : '$step ${(f * 100).round()} %',
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              f == null ? '$step…' : '$step… ${(f * 100).round()} %',
+              style: TextStyle(color: c.ink, fontWeight: FontWeight.w600, fontFeatures: tabular),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(value: f, minHeight: 6, color: c.accent, backgroundColor: c.cardSoft),
+            ),
           ],
         ),
       ),

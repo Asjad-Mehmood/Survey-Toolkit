@@ -6,12 +6,20 @@
 // Windows test can check finding them without the website.
 import 'version.dart';
 
-/// Downloads come only from these, over HTTPS
+/// Links (pages, web apps, release notes) open only on these, over HTTPS
 const allowedDownloadHosts = {'www.exceltokml.com', 'exceltokml.com', 'github.com'};
 
 bool isAllowedUrl(String url) {
   final u = Uri.tryParse(url);
   return u != null && u.scheme == 'https' && allowedDownloadHosts.contains(u.host);
+}
+
+/// Downloads (what gets installed) only from the website and the owner's GitHub releases
+bool isAllowedDownload(String url) {
+  final u = Uri.tryParse(url);
+  if (u == null || u.scheme != 'https') return false;
+  if (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com') return true;
+  return u.host == 'github.com' && u.path.startsWith('/Asjad-Mehmood/') && u.path.contains('/releases/download/');
 }
 
 class FeedDownload {
@@ -25,7 +33,7 @@ class FeedDownload {
     if (j is! Map<String, Object?>) return null;
     final url = j['url'], file = j['file'], sha = j['sha256'], size = j['size'];
     if (url is! String || file is! String || sha is! String) return null;
-    if (!isAllowedUrl(url) || !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) return null;
+    if (!isAllowedDownload(url) || !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha)) return null;
     return FeedDownload(url: url, file: file, size: size is int ? size : null, sha256: sha);
   }
 }

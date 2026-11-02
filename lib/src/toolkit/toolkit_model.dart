@@ -1,9 +1,10 @@
-// The Tools page's state: the feed from the website, what is installed on this PC, and each
-// tool's status. T2 only looks: nothing on the PC is changed. "Get it" and "Get the update" open
-// the tool's page in the browser.
+// The Tools page's state: the feed from the website, what is installed on this PC, each tool's
+// status, and the install, update or uninstall in progress (one at a time, lib/src/toolkit/
+// installer.dart).
 //
 // After each check the Toolkit tells the website (testers only, /api/toolkit/event) this PC's
-// name, Windows version and installed versions, for Admin → Toolkit (beta).
+// name, Windows version and installed versions, and after each job what it did, for
+// Admin → Toolkit (beta).
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -16,10 +17,11 @@ import '../brand.dart';
 import '../state/store.dart';
 import 'detect.dart';
 import 'feed.dart';
+import 'installer.dart';
 import 'status.dart';
 
 class ToolkitModel extends ChangeNotifier {
-  ToolkitModel({required this.account, required this.store, required this.detector}) {
+  ToolkitModel({required this.account, required this.store, required this.detector, this.installer}) {
     final kept = Feed.from(store.readJson(_feedKey));
     if (kept != null) {
       _feed = kept;
@@ -32,6 +34,9 @@ class ToolkitModel extends ChangeNotifier {
   final Account account;
   final Store store;
   final Detector detector;
+
+  /// null: install and uninstall aren't offered (look only)
+  final ToolInstaller? installer;
 
   static const _feedKey = 'feed';
   static const _checkedKey = 'checked';
@@ -185,5 +190,93 @@ class ToolkitModel extends ChangeNotifier {
     }
     notifyListeners();
     unawaited(report());
+  }
+
+  // ------------------------------------------------------------------ install, update, uninstall
+
+  /// The tool with a job running, and how far it is
+  String? jobTool;
+  JobProgress? jobProgress;
+
+  /// The last job's result on each tool's card, until the next one
+  final Map<String, JobResult> results = {};
+
+  bool get jobRunning => jobTool != null;
+
+  /// Can the Toolkit install or update this tool now?
+  bool canInstall(FeedTool t) => installer != null && t.download != null && t.version != null && !jobRunning;
+
+  /// Why the Toolkit can't uninstall this tool, or null when it can
+  String? cannotUninstall(FeedTool t) {
+    final i = _installed[t.id];
+    if (installer == null || i == null) return 'Not available';
+    return installer!.cannotUninstall(t, i);
+  }
+
+  Future<JobResult> install(FeedTool t) async {
+    final before = _installed[t.id];
+    final from = before != null && before.found ? before.version : null;
+    return _job(
+      t,
+      (inst) => inst.install(t, current: before != null && before.found ? before : null, onProgress: _progress),
+      (r) => {
+        'tool': t.id,
+        'action': r.ok ? (from == null ? 'installed' : 'updated') : 'failed',
+        'from': from ?? '',
+        'to': r.version ?? t.version ?? '',
+        if (!r.ok) 'message': r.message,
+      },
+    );
+  }
+
+  Future<JobResult> uninstall(FeedTool t) async {
+    final before = _installed[t.id] ?? Installed.none;
+    return _job(
+      t,
+      (inst) => inst.uninstall(t, before),
+      (r) => {
+        'tool': t.id,
+        'action': r.ok ? 'uninstalled' : 'failed',
+        'from': before.version ?? '',
+        if (!r.ok) 'message': 'uninstall: ${r.message}',
+      },
+    );
+  }
+
+  void _progress(JobProgress p) {
+    jobProgress = p;
+    notifyListeners();
+  }
+
+  Future<JobResult> _job(
+    FeedTool t,
+    Future<JobResult> Function(ToolInstaller) work,
+    Map<String, Object?> Function(JobResult) event,
+  ) async {
+    final inst = installer;
+    if (inst == null) return const JobResult.failed('Installing isn\'t available in this Toolkit.');
+    if (jobRunning) return const JobResult.blocked('Another tool is being installed. Wait for it to finish.');
+    jobTool = t.id;
+    jobProgress = null;
+    results.remove(t.id);
+    notifyListeners();
+    JobResult r;
+    try {
+      r = await work(inst);
+    } catch (e) {
+      r = JobResult.failed('Something went wrong: $e');
+    }
+    try {
+      _installed[t.id] = await detector.find(t);
+    } catch (_) {
+      // shown as before; the next check looks again
+    }
+    results[t.id] = r;
+    jobTool = null;
+    jobProgress = null;
+    notifyListeners();
+    // a tool that was open: nothing happened, nothing to report
+    if (!r.blocked) unawaited(report(events: [event(r)]));
+    return r;
   }
 }
