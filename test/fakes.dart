@@ -1,4 +1,5 @@
 // A fake exceltokml.com and a PC with some tools, shared by the app tests and the screenshots.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,6 +13,7 @@ import 'package:survey_toolkit/src/app.dart';
 import 'package:survey_toolkit/src/state/store.dart';
 import 'package:survey_toolkit/src/toolkit/detect.dart';
 import 'package:survey_toolkit/src/toolkit/feed.dart';
+import 'package:survey_toolkit/src/toolkit/installer.dart';
 import 'package:survey_toolkit/src/toolkit/toolkit_model.dart';
 import 'package:survey_toolkit/src/ui/settings.dart';
 
@@ -77,12 +79,54 @@ FakeDetector typicalPc() => FakeDetector({
   'slope': const Installed(version: '1.0.3', folder: r'C:\S', program: r'C:\S\SlopeCalculator.exe'),
 }, autocad: false);
 
+/// Installs nothing: answers what the test sets, when the test says (via [gate])
+class FakeInstaller extends ToolInstaller {
+  FakeInstaller({Detector? detector})
+    : super(
+        places: Places(localAppData: 'L', appData: 'R'),
+        detector: detector ?? FakeDetector(const {}),
+      );
+
+  JobResult next = const JobResult.done('Done.');
+  Completer<void>? gate;
+  final calls = <String>[];
+
+  @override
+  Future<JobResult> install(FeedTool t, {Installed? current, void Function(JobProgress)? onProgress}) async {
+    calls.add('install ${t.id}');
+    onProgress?.call(const JobProgress('Downloading', 0.42));
+    await gate?.future;
+    return next;
+  }
+
+  @override
+  Future<JobResult> uninstall(FeedTool t, Installed current) async {
+    calls.add('uninstall ${t.id}');
+    await gate?.future;
+    return next;
+  }
+
+  @override
+  String? cannotUninstall(FeedTool t, Installed i) => i.found ? null : 'not installed';
+
+  @override
+  void log(String line) {}
+}
+
 class Harness {
-  Harness({required this.site, required this.store, Detector? detector}) {
+  Harness({
+    required this.site,
+    required this.store,
+    Detector? detector,
+    ToolInstaller? installer,
+    bool lookOnly = false,
+  }) {
     account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
-    model = ToolkitModel(account: account, store: store, detector: detector ?? typicalPc());
+    this.installer = lookOnly ? null : installer ?? FakeInstaller();
+    model = ToolkitModel(account: account, store: store, detector: detector ?? typicalPc(), installer: this.installer);
     settings = AppSettings(store);
   }
+  late final ToolInstaller? installer;
   final FakeSite site;
   final Store store;
   late final Account account;

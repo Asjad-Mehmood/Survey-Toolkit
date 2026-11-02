@@ -101,6 +101,20 @@ A Flutter Windows program reusing Slope Calculator's sign-in, theme and self-upd
 **Done when:** every tool installs, updates and uninstalls cleanly on a test PC and in the
 Windows CI test.
 
+**As built:** `lib/src/toolkit/installer.dart`, with the Install, Update and Uninstall buttons and a
+progress bar on each card. One job runs at a time, and each job is reported to
+`/api/toolkit/event`.
+
+- **Download addresses:** only `www.exceltokml.com` and `github.com/Asjad-Mehmood/…/releases/download/…`.
+- **Files inside a zip:** they can't reach outside their folder.
+- **Settings:** the settings file in `keep` is never overwritten.
+- **Tests:** 86 automatic tests.
+- **The Windows check:** builds a feed from the real downloads. The Toolkit then installs all
+  five tools, updates Slope Calculator 1.0.2 to the latest, refuses while Slope Calculator is
+  open, refuses a wrong SHA-256, and finds every version. It removes RoadPro and Project Folder
+  Manager, keeping the settings file.
+- **Left for a PC with AutoCAD (T8):** whether SECURELOAD asks about a bundle in `%APPDATA%`.
+
 ### T4: Automatic updates (v0.3)
 
 - Checks when it starts and every 4 hours while open.

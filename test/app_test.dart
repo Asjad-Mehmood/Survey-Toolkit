@@ -1,11 +1,13 @@
 // The Toolkit against a fake exceltokml.com: sign in first, the beta list, the Tools page, what
 // it reports to the website, offline, and every screen at phone to large-desktop sizes with large
 // text, light and dark, without anything running off the edge.
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:survey_toolkit/src/state/store.dart';
+import 'package:survey_toolkit/src/toolkit/installer.dart';
 
 import 'fakes.dart';
 
@@ -70,14 +72,15 @@ void main() {
     expect(find.text('UP TO DATE'), findsOneWidget);
     expect(find.text('NEEDS AUTOCAD'), findsOneWidget);
     expect(find.text('NOT INSTALLED'), findsNWidgets(2));
-    expect(find.text('Get the update'), findsOneWidget);
-    expect(find.text('Get it'), findsNWidgets(3));
+    expect(find.text('Update'), findsOneWidget);
+    expect(find.text('Install'), findsNWidgets(3));
+    expect(find.text('Uninstall'), findsNWidgets(2));
     expect(find.text('Open'), findsNWidgets(2));
     expect(find.text('Web app'), findsNWidgets(2));
     expect(find.text('Already have it? Choose its folder'), findsOneWidget);
     // the website's note on Slope Calculator is for the owner: its download is fine, so not shown
     expect(find.textContaining('latest.json is missing'), findsNothing);
-    expect(find.textContaining('look only'), findsOneWidget);
+    expect(find.textContaining('checked by its SHA-256'), findsOneWidget);
 
     // what the website was told: this PC and its installed versions
     expect(site.reports, isNotEmpty);
@@ -92,6 +95,118 @@ void main() {
     });
     // the same id next time
     expect(h.model.deviceId, device['id']);
+  });
+
+  testWidgets('look only (no installer): Get it and Get the update open the browser instead', (t) async {
+    t.view.physicalSize = const Size(1280, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final h = Harness(site: FakeSite(), store: signedInStore(), lookOnly: true);
+    await t.pumpWidget(h.app);
+    await settle(t);
+    expect(find.text('Get the update'), findsOneWidget);
+    expect(find.text('Get it'), findsNWidgets(3));
+    expect(find.text('Uninstall'), findsNothing);
+    expect(find.textContaining('look only'), findsOneWidget);
+  });
+
+  testWidgets('Update: the progress on the card, then the result; the website is told', (t) async {
+    t.view.physicalSize = const Size(1280, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final site = FakeSite();
+    final installer = FakeInstaller()
+      ..gate = Completer<void>()
+      ..next = const JobResult.done('Excel to KML is updated to 4.4.0.', version: '4.4.0');
+    final h = Harness(site: site, store: signedInStore(), installer: installer);
+    await t.pumpWidget(h.app);
+    await settle(t);
+    site.reports.clear();
+
+    await t.tap(find.text('Update'));
+    await t.pump();
+    expect(installer.calls, ['install excel-to-kml']);
+    expect(find.text('Downloading… 42 %'), findsOneWidget);
+    // one job at a time: the other tools' Install buttons wait
+    final installs = t.widgetList<ButtonStyleButton>(
+      find.ancestor(of: find.text('Install'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
+    );
+    expect(installs.every((b) => b.onPressed == null), isTrue);
+
+    installer.gate!.complete();
+    await settle(t);
+    expect(find.text('Excel to KML is updated to 4.4.0.'), findsOneWidget);
+    final events = site.reports.expand((r) => (r['events']! as List).cast<Map<String, Object?>>()).toList();
+    expect(events, [
+      {'tool': 'excel-to-kml', 'action': 'updated', 'from': '4.3.1', 'to': '4.4.0'},
+    ]);
+  });
+
+  testWidgets('a tool that is open: asked to close it, nothing reported', (t) async {
+    t.view.physicalSize = const Size(1280, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final site = FakeSite();
+    final installer = FakeInstaller()
+      ..next = const JobResult.blocked('Close Excel to KML first, then press Update again.');
+    final h = Harness(site: site, store: signedInStore(), installer: installer);
+    await t.pumpWidget(h.app);
+    await settle(t);
+    site.reports.clear();
+    await t.tap(find.text('Update'));
+    await settle(t);
+    expect(find.text('Close Excel to KML first, then press Update again.'), findsOneWidget);
+    expect(site.reports.expand((r) => r['events']! as List), isEmpty);
+  });
+
+  testWidgets('a failed install is shown and reported with its reason', (t) async {
+    t.view.physicalSize = const Size(1280, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final site = FakeSite();
+    final installer = FakeInstaller()
+      ..next = const JobResult.failed('The download didn\'t match its SHA-256 checksum.');
+    final h = Harness(site: site, store: signedInStore(), installer: installer);
+    await t.pumpWidget(h.app);
+    await settle(t);
+    site.reports.clear();
+    await t.tap(find.text('Install').first);
+    await settle(t);
+    expect(find.text('The download didn\'t match its SHA-256 checksum.'), findsOneWidget);
+    final events = site.reports.expand((r) => (r['events']! as List).cast<Map<String, Object?>>()).toList();
+    expect(events.single['action'], 'failed');
+    expect(events.single['tool'], 'roadpro');
+    expect(events.single['message'], contains('SHA-256'));
+  });
+
+  testWidgets('Uninstall asks first; Cancel does nothing, Uninstall removes and reports', (t) async {
+    t.view.physicalSize = const Size(1280, 1600);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final site = FakeSite();
+    final installer = FakeInstaller()..next = const JobResult.done('Slope Calculator is removed.');
+    final h = Harness(site: site, store: signedInStore(), installer: installer);
+    await t.pumpWidget(h.app);
+    await settle(t);
+    site.reports.clear();
+
+    await t.ensureVisible(find.text('Uninstall').last);
+    await t.tap(find.text('Uninstall').last);
+    await settle(t);
+    expect(find.text('Uninstall Slope Calculator?'), findsOneWidget);
+    await t.tap(find.text('Cancel'));
+    await settle(t);
+    expect(installer.calls, isEmpty);
+
+    await t.ensureVisible(find.text('Uninstall').last);
+    await t.tap(find.text('Uninstall').last);
+    await settle(t);
+    await t.tap(find.widgetWithText(FilledButton, 'Uninstall'));
+    await settle(t);
+    expect(installer.calls, ['uninstall slope']);
+    expect(find.text('Slope Calculator is removed.'), findsOneWidget);
+    final events = site.reports.expand((r) => (r['events']! as List).cast<Map<String, Object?>>()).toList();
+    expect(events.single, {'tool': 'slope', 'action': 'uninstalled', 'from': '1.0.3'});
   });
 
   testWidgets('a tool whose download the website can\'t check says why', (t) async {
