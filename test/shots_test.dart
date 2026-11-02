@@ -64,6 +64,8 @@ void main() {
 
   const desktop = Size(1180, 900);
   testWidgets('screens', (t) async {
+    // real soft shadows, as in the program (tests draw them as black lines otherwise)
+    debugDisableShadows = false;
     await shot(t, '1-sign-in', Harness(site: FakeSite(), store: Store.memory()), desktop);
     await shot(
       t,
@@ -115,5 +117,17 @@ void main() {
         await settle(t);
       },
     );
+
+    await shot(
+      t,
+      '9-app-grid',
+      Harness(site: FakeSite(), store: signedInStore()),
+      desktop,
+      before: () async {
+        await t.tap(find.byTooltip('Switch app'));
+        await settle(t);
+      },
+    );
+    debugDisableShadows = true;
   }, skip: _dir == null);
 }

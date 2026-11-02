@@ -17,10 +17,13 @@ import '../ui/theme.dart';
 import '../ui/widgets.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key, required this.model, required this.account, required this.settings});
+  const ToolsScreen({super.key, required this.model, required this.account, required this.settings, this.switcher});
   final ToolkitModel model;
   final Account account;
   final AppSettings settings;
+
+  /// The workspace's app grid button, in the header
+  final Widget? switcher;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +53,7 @@ class ToolsScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          ?switcher,
           IconButton(
             tooltip: 'Check again',
             onPressed: model.busy ? null : model.refresh,

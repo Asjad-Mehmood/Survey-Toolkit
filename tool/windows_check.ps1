@@ -9,9 +9,10 @@
 #   8. it finds every one, with the right version and the program to open;
 #   9. it removes RoadPro and Project Folder Manager, keeping the settings file;
 #  10. open the Toolkit: a drawn window with the sign-in, a screenshot, one copy on a second start;
-#  11. uninstall the Toolkit: its folder and entry go, the tools stay.
-#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png
-param([Parameter(Mandatory)] [string] $Installer, [string] $Screenshot = 'windows-check.png')
+#  11. the workspace: Slope Calculator's web app inside the Toolkit's window (WebView2), a screenshot;
+#  12. uninstall the Toolkit: its folder, entry and the web apps' browser data go, the tools stay.
+#   pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png windows-workspace.png
+param([Parameter(Mandatory)] [string] $Installer, [string] $Screenshot = 'windows-check.png', [string] $Workspace = 'windows-workspace.png')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $home_ = Join-Path $env:LOCALAPPDATA 'Survey Toolkit'
@@ -34,6 +35,17 @@ function RunAndWait([string] $file, [string[]] $arguments) {
   $null = $p.Handle
   if (-not $p.WaitForExit(300000)) { throw "$file did not finish within 5 minutes" }
   return $p.ExitCode
+}
+function Shot([string] $file, [string] $what) {
+  Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+  $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+  $bmp = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+  [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+  $bmp.Save($file, [System.Drawing.Imaging.ImageFormat]::Png)
+  $colours = @{}
+  for ($x = 0; $x -lt $screen.Width; $x += 23) { for ($y = 0; $y -lt $screen.Height; $y += 19) { $colours[$bmp.GetPixel($x, $y).ToArgb()] = 1 } }
+  Write-Host "screenshot: $file ($($screen.Width)x$($screen.Height), $($colours.Count) colours)"
+  Check ($colours.Count -gt 20) $what
 }
 function Detect([string] $name) {
   $out = Join-Path $work "$name.json"
@@ -186,24 +198,27 @@ $p = Start-Process -FilePath $exe -PassThru
 Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 -and $p.MainWindowTitle -eq 'Survey Toolkit' } 30) 'opens a window titled "Survey Toolkit"'
 Start-Sleep -Seconds 8
 Check (-not $p.HasExited) 'still running after 8 seconds'
-Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-$screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$bmp = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
-[System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
-$bmp.Save($Screenshot, [System.Drawing.Imaging.ImageFormat]::Png)
-$colours = @{}
-for ($x = 0; $x -lt $screen.Width; $x += 23) { for ($y = 0; $y -lt $screen.Height; $y += 19) { $colours[$bmp.GetPixel($x, $y).ToArgb()] = 1 } }
-Write-Host "screenshot: $Screenshot ($($screen.Width)x$($screen.Height), $($colours.Count) colours)"
-Check ($colours.Count -gt 20) 'the screen shows a drawn window, not a blank one'
+Shot $Screenshot 'the screen shows a drawn window, not a blank one'
 Start-Process -FilePath $exe
 Start-Sleep -Seconds 5
 Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'a second start leaves one copy'
 
-# 11. uninstall the Toolkit; the tools stay
+# 11. the workspace: Slope Calculator's web app inside the Toolkit's window (Microsoft Edge WebView2)
+Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 2
+$p = Start-Process -FilePath $exe -ArgumentList '--preview=slope' -PassThru
+Check (WaitFor { $p.Refresh(); $p.MainWindowHandle -ne 0 -and $p.MainWindowTitle -eq 'Survey Toolkit' } 30) 'the workspace opens'
+Check (WaitFor { Test-Path (Join-Path $home_ 'WebView') } 30) 'WebView2 runs, keeping its data in the Toolkit''s folder'
+Start-Sleep -Seconds 20 # the web app loads from exceltokml.com
+Check (-not $p.HasExited) 'still running with the web app inside'
+Shot $Workspace 'the web app is drawn inside the window'
+
+# 12. uninstall the Toolkit; the tools stay
 $code = RunAndWait (Join-Path $dir 'Uninstall.exe') @('/S')
 Check (WaitFor { -not (Test-Path $dir) } 30) 'uninstall removes the Program folder'
 Check (-not (Test-Path $key)) 'uninstall removes it from Settings > Apps'
 Check (-not (Get-Process SurveyToolkit -ErrorAction SilentlyContinue)) 'uninstall closes the Toolkit'
+Check (-not (Test-Path (Join-Path $home_ 'WebView'))) 'uninstall removes the web apps'' browser data (their sign-in)'
 Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'the tools stay (Project Folder Manager''s settings are still there)'
 Check (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SlopeCalculator') 'the tools stay (Slope Calculator is still installed)'
 Write-Host 'Survey Toolkit on Windows: all good'

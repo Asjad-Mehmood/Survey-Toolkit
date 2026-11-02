@@ -7,11 +7,12 @@ import 'account/account.dart';
 import 'brand.dart';
 import 'screens/beta_screen.dart';
 import 'screens/sign_in_screen.dart';
-import 'screens/tools_screen.dart';
 import 'toolkit/toolkit_model.dart';
 import 'ui/settings.dart';
 import 'ui/theme.dart';
 import 'update/updater.dart';
+import 'workspace/app_view.dart';
+import 'workspace/workspace_shell.dart';
 
 class ToolkitApp extends StatelessWidget {
   const ToolkitApp({
@@ -20,10 +21,14 @@ class ToolkitApp extends StatelessWidget {
     required this.model,
     required this.settings,
     this.checkUpdates = true,
+    this.views = webView2Factory,
   });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
+
+  /// How the workspace shows a web app (WebView2; a stand-in in tests)
+  final AppViewFactory views;
 
   /// Looks for a new Toolkit a few seconds after opening (off in tests)
   final bool checkUpdates;
@@ -37,17 +42,24 @@ class ToolkitApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: settings.themeMode,
-      home: _Gate(account: account, model: model, settings: settings, checkUpdates: checkUpdates),
+      home: _Gate(account: account, model: model, settings: settings, checkUpdates: checkUpdates, views: views),
     ),
   );
 }
 
 class _Gate extends StatefulWidget {
-  const _Gate({required this.account, required this.model, required this.settings, required this.checkUpdates});
+  const _Gate({
+    required this.account,
+    required this.model,
+    required this.settings,
+    required this.checkUpdates,
+    required this.views,
+  });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
   final bool checkUpdates;
+  final AppViewFactory views;
 
   @override
   State<_Gate> createState() => _GateState();
@@ -100,6 +112,6 @@ class _GateState extends State<_Gate> {
       _started = true;
       WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(widget.model.refresh()));
     }
-    return ToolsScreen(model: widget.model, account: a, settings: widget.settings);
+    return WorkspaceShell(account: a, model: widget.model, settings: widget.settings, views: widget.views);
   }
 }

@@ -5,9 +5,16 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:survey_toolkit/src/account/account.dart';
+import 'package:survey_toolkit/src/account/api.dart';
 import 'package:survey_toolkit/src/state/store.dart';
 import 'package:survey_toolkit/src/toolkit/installer.dart';
+import 'package:survey_toolkit/src/workspace/apps.dart';
+import 'package:survey_toolkit/src/workspace/workspace_shell.dart';
 
 import 'fakes.dart';
 
@@ -33,7 +40,7 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await settle(t);
     expect(find.text('Survey Toolkit'), findsOneWidget);
-    expect(find.text('Excel to KML'), findsOneWidget);
+    expect(find.text('1 update available'), findsOneWidget);
   });
 
   testWidgets('not on the beta list: the closed message, Sign out and Check again; nothing reported', (t) async {
@@ -52,7 +59,7 @@ void main() {
     site.tester = true;
     await t.tap(find.text('Check again'));
     await settle(t);
-    expect(find.text('Excel to KML'), findsOneWidget);
+    expect(find.text('1 update available'), findsOneWidget);
   });
 
   testWidgets('the Tools page: each tool\'s status, versions and buttons; the PC is reported', (t) async {
@@ -254,6 +261,152 @@ void main() {
     expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
   });
 
+  group('the workspace', () {
+    Future<Harness> open(WidgetTester t, {FakeSite? site, Store? store, Size size = const Size(1280, 900)}) async {
+      t.view.physicalSize = size;
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final h = Harness(site: site ?? FakeSite(), store: store ?? signedInStore());
+      await t.pumpWidget(h.app);
+      await settle(t);
+      return h;
+    }
+
+    testWidgets('a sidebar with Home and the three web apps; RoadPro and Folder Manager stay on Home', (t) async {
+      await open(t);
+      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope']) {
+        expect(find.byKey(ValueKey('workspace $label')), findsOneWidget, reason: label);
+      }
+      expect(find.byKey(const ValueKey('workspace RoadPro')), findsNothing);
+      expect(find.byKey(const ValueKey('workspace Project Folder Manager')), findsNothing);
+      expect(find.text('1 update available'), findsOneWidget, reason: 'Home is the Tools page');
+    });
+
+    testWidgets('an app opens inside, signed in by a single-use handover, and stays open when switching', (t) async {
+      final site = FakeSite();
+      final h = await open(t, site: site);
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      expect(site.handoffs, ['/slope-calculation/app']);
+      expect(find.text('Showing https://www.exceltokml.com/api/toolkit/handoff?code=${'c' * 64}'), findsOneWidget);
+      expect(find.text('Slope Calculator'), findsWidgets);
+      // installed on this PC: the Windows program is a click away
+      expect(find.text('Windows app'), findsOneWidget);
+
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      expect(h.views, hasLength(1), reason: 'the same window, still open');
+      expect(site.handoffs, hasLength(1));
+    });
+
+    testWidgets('no handover (offline, or the website refuses): the app opens with its own sign-in', (t) async {
+      final site = FakeSite()..handoffWorks = false;
+      await open(t, site: site);
+      await t.tap(find.byKey(const ValueKey('workspace Traverse')));
+      await settle(t);
+      expect(find.text('Showing https://www.exceltokml.com/traverse/app'), findsOneWidget);
+      // not installed here: no Windows app button
+      expect(find.text('Windows app'), findsNothing);
+    });
+
+    testWidgets('the app grid, like Google\'s, jumps to any app', (t) async {
+      await open(t);
+      await t.tap(find.byTooltip('Switch app'));
+      await settle(t);
+      for (final name in ['Home', 'Excel to KML', 'Traverse & Level', 'Slope Calculator']) {
+        expect(find.byKey(ValueKey('grid $name')), findsOneWidget, reason: name);
+      }
+      await t.tap(find.byKey(const ValueKey('grid Traverse & Level')));
+      await settle(t);
+      expect(find.textContaining('Showing https://www.exceltokml.com/api/toolkit/handoff'), findsOneWidget);
+      expect(find.text('Traverse & Level'), findsWidgets);
+    });
+
+    testWidgets('Ctrl+1 to Ctrl+4', (t) async {
+      final h = await open(t);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(h.views.single.app.id, 'excel-to-kml');
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('1 update available'), findsOneWidget);
+    });
+
+    testWidgets('opens where the user was last time', (t) async {
+      final store = signedInStore();
+      var h = await open(t, store: store);
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      await t.pumpWidget(const SizedBox());
+      h = await open(t, store: store);
+      expect(h.views.single.app.id, 'slope');
+    });
+
+    testWidgets('signing out makes every open app window forget its sign-in', (t) async {
+      final h = await open(t);
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      await t.tap(find.byKey(const ValueKey('workspace Excel to KML')));
+      await settle(t);
+      await h.account.signOut();
+      await settle(t);
+      expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
+      expect(h.views.every((v) => v.forgot), isTrue);
+    });
+
+    testWidgets('the preview for the Windows test: one app, no sign-in, nothing else reachable', (t) async {
+      t.view.physicalSize = const Size(1280, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final opened = <String>[];
+      await t.pumpWidget(
+        WorkspacePreview(
+          appId: 'slope',
+          views: (app, start) {
+            opened.add(app.id);
+            return FakeView(app, start);
+          },
+        ),
+      );
+      await settle(t);
+      expect(opened, ['slope']);
+      expect(find.text('Showing https://www.exceltokml.com/slope-calculation/app'), findsOneWidget);
+      expect(find.text('1 update available'), findsNothing);
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      expect(find.text('1 update available'), findsNothing);
+    });
+
+    test('pages off the website open in the browser', () {
+      expect(staysInside(Uri.parse('https://www.exceltokml.com/slope-calculation/app')), isTrue);
+      expect(staysInside(Uri.parse('https://accounts.google.com/x')), isFalse);
+      expect(staysInside(Uri.parse('http://www.exceltokml.com/app')), isFalse);
+    });
+
+    test('a handover address from anywhere but the website is not used', () async {
+      final site = FakeSite();
+      final store = signedInStore();
+      final account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
+      expect(await account.handoffUrl('/app'), startsWith('https://www.exceltokml.com/api/toolkit/handoff?code='));
+      final evil = Account(
+        Api(
+          base: 'https://www.exceltokml.com',
+          client: MockClient(
+            (_) async => http.Response(jsonEncode({'url': 'https://evil.example/api/toolkit/handoff'}), 200),
+          ),
+        ),
+        store,
+      );
+      expect(await evil.handoffUrl('/app'), isNull);
+    });
+  });
+
   group('every screen fits', () {
     const sizes = [Size(360, 640), Size(800, 600), Size(1024, 700), Size(1366, 768), Size(1920, 1080)];
     const scales = [1.0, 1.5, 2.0];
@@ -273,16 +426,17 @@ void main() {
             FlutterError.onError = errors.add;
             addTearDown(() => FlutterError.onError = old);
 
-            for (final store in [Store.memory(), signedInStore(beta: 'unknown'), signedInStore()]) {
+            final withApp = signedInStore()..write('workspace-last', 'slope');
+            for (final store in [Store.memory(), signedInStore(beta: 'unknown'), signedInStore(), withApp]) {
               final site = FakeSite()..tester = store.readJson('account')?['beta'] != 'unknown';
               final h = Harness(site: site, store: store);
               h.settings.themeMode = dark ? ThemeMode.dark : ThemeMode.light;
               await t.pumpWidget(h.app);
               await settle(t);
               // scroll to the end
-              final list = find.byType(Scrollable);
-              if (list.evaluate().isNotEmpty) {
-                await t.drag(list.first, const Offset(0, -6000));
+              final lists = find.byType(Scrollable);
+              for (var i = 0; i < lists.evaluate().length; i++) {
+                await t.drag(lists.at(i), const Offset(0, -6000), warnIfMissed: false);
                 await settle(t);
               }
             }
