@@ -72,6 +72,20 @@ A Flutter Windows program reusing Slope Calculator's sign-in, theme and self-upd
 
 **Done when:** testers see the right status for every tool on their own PCs.
 
+**As built:** this repository's Flutter program. The sign-in comes first, then
+`/api/toolkit/me`, then the Tools page.
+
+- **What is installed:** read with `reg.exe` and from the files under AppData.
+- **The tool list:** the website's feed, with a built-in list as a fallback, so the Toolkit can
+  look on the PC before it has ever reached the website.
+- **Reports:** each check sends the PC and its installed versions to `/api/toolkit/event`.
+- **Self-update:** from the Toolkit's own pre-releases.
+- **Tests:** 54 automatic tests, including every screen at 5 sizes × 3 text sizes × light and
+  dark.
+- **The Windows check:** installs the Toolkit, installs the real tools from their official
+  downloads, and checks that the Toolkit finds each one with the right version. It does this with
+  `SurveyToolkit.exe --detect=<file>`, which looks, writes JSON and closes.
+
 ### T3: Install and update on a click (v0.2)
 
 - Download to `%LOCALAPPDATA%\Survey Toolkit\downloads`, check the SHA-256 (refuse if it
