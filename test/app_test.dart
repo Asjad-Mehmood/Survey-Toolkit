@@ -132,6 +132,11 @@ void main() {
       find.ancestor(of: find.text('Install'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
     );
     expect(installs.every((b) => b.onPressed == null), isTrue);
+    final uninstalls = t.widgetList<ButtonStyleButton>(
+      find.ancestor(of: find.text('Uninstall'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
+    );
+    expect(uninstalls, isNotEmpty);
+    expect(uninstalls.every((b) => b.onPressed == null), isTrue);
 
     installer.gate!.complete();
     await settle(t);
