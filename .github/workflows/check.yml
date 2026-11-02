@@ -70,17 +70,15 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe windows-check.png windows-workspace.png windows-tray.png
+        run: pwsh tool/windows_check.ps1 installer\SurveyToolkit-Setup.exe shots
 
-      - name: Keep the screenshot
+      # a screenshot at each step; the checklist is on the run's summary page
+      - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-screenshot
-          path: |
-            windows-check.png
-            windows-workspace.png
-            windows-tray.png
+          name: windows-screenshots
+          path: shots/
           if-no-files-found: ignore
           retention-days: 14
 
