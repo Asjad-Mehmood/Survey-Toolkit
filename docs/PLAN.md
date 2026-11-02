@@ -200,6 +200,22 @@ A separate **Toolkit (beta)** tab in the website's Admin:
 - updates done and failed, with the reason;
 - Toolkit downloads.
 
+**As built (website PR #97):** a page of its own, **`/toolkit-beta/admin`**, in the main Admin's
+frame and sign-in, rather than a tab inside `app/admin`, so the main Admin is unchanged and the
+test can be removed without touching it. Admins only; signed out goes to the sign-in, anyone else
+gets "not found"; never indexed. A link to it from the main Admin can come at launch (T10).
+
+- **Overview:** testers, PCs seen in 7 days, updates and failures in 30 days (and how many were
+  automatic), Toolkit downloads (from its GitHub releases), each tool's latest version against
+  the testers' PCs, the latest failures.
+- **Testers:** add (with a note) and remove; whether they have an account yet, their PCs, last
+  sign-in, who added them.
+- **PCs:** Windows, Toolkit and tool versions per PC (older ones marked), last seen, the PC's own
+  activity; forget a PC.
+- **Activity:** the newest 300 events, filtered by failed, automatic, updated, installed,
+  uninstalled and tool, with the reason.
+- `GET /api/toolkit/admin` and `DELETE /api/toolkit/admin?device=` (admins only); no new tables.
+
 ### T7: Automatic tests
 
 On GitHub's Windows machines, on every change:
