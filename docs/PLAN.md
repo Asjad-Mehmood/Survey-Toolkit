@@ -267,6 +267,12 @@ failed.
   program.
 - A checklist like Slope Calculator's TESTING.md, plus the failure list in Admin.
 
+**Ready:** [BETA.md](BETA.md) has the owner's steps before it starts (merge, Slope Calculator's
+`latest.json`, publish v0.5.0, add the testers, the invitation), the PCs to cover, each tester's
+checklist, the AutoCAD hand test (SECURELOAD), what to watch in Admin, and when the beta is done.
+The first beta's notes are [releases/v0.5.0.md](releases/v0.5.0.md); a v0.5.1 halfway through
+tests the Toolkit updating itself on the testers' PCs.
+
 ### T10: Launch, only when the owner says so
 
 If the beta went well:
