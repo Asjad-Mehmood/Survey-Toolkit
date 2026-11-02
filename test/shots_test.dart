@@ -128,6 +128,19 @@ void main() {
         await settle(t);
       },
     );
+
+    // T5: the Updates section, with Start with Windows on and Excel to KML waiting to be opened
+    final bg = Harness(site: FakeSite(), store: signedInStore())..startup.on = true;
+    await shot(
+      t,
+      '10-updates',
+      bg,
+      desktop,
+      before: () async {
+        await t.ensureVisible(find.byKey(const ValueKey('mode slope')));
+        await settle(t);
+      },
+    );
     debugDisableShadows = true;
   }, skip: _dir == null);
 }

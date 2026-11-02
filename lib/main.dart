@@ -15,6 +15,7 @@ import 'src/toolkit/detect.dart';
 import 'src/toolkit/installer.dart';
 import 'src/toolkit/toolkit_model.dart';
 import 'src/ui/settings.dart';
+import 'src/update/background.dart';
 import 'src/workspace/workspace_shell.dart';
 
 Future<void> main(List<String> args) async {
@@ -42,5 +43,15 @@ Future<void> main(List<String> args) async {
     detector: detector,
     installer: ToolInstaller(places: places, detector: detector),
   );
-  runApp(ToolkitApp(account: account, model: model, settings: AppSettings(store)));
+  // the tray icon; started by Windows at sign-in (--tray) the window stays hidden until opened
+  final tray = WindowsTray();
+  await tray.start();
+  runApp(
+    ToolkitApp(
+      account: account,
+      model: model,
+      settings: AppSettings(store),
+      background: Background(tray: tray, startup: WindowsStartup()),
+    ),
+  );
 }
