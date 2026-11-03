@@ -10,6 +10,7 @@ import 'package:webview_windows/webview_windows.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import 'apps.dart';
+import 'select_fix.dart';
 
 @immutable
 class AppViewState {
@@ -77,6 +78,8 @@ class WebView2Handle implements AppViewHandle {
       await _controller.initialize();
       if (_disposed) return;
       await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.sameWindow);
+      // drop-down lists can't open their native pop-up here: an in-page list instead (select_fix.dart)
+      await _controller.addScriptToExecuteOnDocumentCreated(selectFixScript);
       _subs
         ..add(_controller.url.listen(_onUrl))
         ..add(
