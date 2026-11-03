@@ -115,7 +115,7 @@ class ToolInstaller {
       return _fail(t, 'The download address for ${t.name} is not one the Toolkit trusts.');
     }
 
-    final open = await _openProgram(t);
+    final open = await _openProgram(t, current);
     if (open != null) {
       log('  blocked: $open is running');
       return JobResult.blocked('Close ${t.name} first, then press ${from == null ? 'Install' : 'Update'} again.');
@@ -149,6 +149,7 @@ class ToolInstaller {
         );
       }
       log('  done: ${found.version}');
+      if (current != null && current.oldCopy) _removeOldCopy(t, current);
       final note = t.install.kind == 'autocad-bundle' && await _isRunning('acad.exe')
           ? ' AutoCAD loads it the next time it starts.'
           : '';
@@ -179,9 +180,9 @@ class ToolInstaller {
   }
 
   /// The tool's program, when it is running (installers close it by force)
-  Future<String?> _openProgram(FeedTool t) async {
+  Future<String?> _openProgram(FeedTool t, [Installed? current]) async {
     final names = switch (t.install.kind) {
-      'installer' => t.install.exe,
+      'installer' => [...t.install.exe, if (current?.program != null) p.basename(current!.program!)],
       'zip' => [?t.install.main],
       _ => const <String>[],
     };
@@ -304,6 +305,31 @@ class ToolInstaller {
     }
   }
 
+  /// After Project Folder Manager 7 is installed over a 6.2 copy the Toolkit unzipped: that copy's
+  /// program files and Start menu shortcut go. Its settings file stays, so version 7 can offer to
+  /// bring the settings in. A copy the user unzipped somewhere else is left as it is.
+  void _removeOldCopy(FeedTool t, Installed old) {
+    if (old.folder == null || !p.equals(old.folder!, places.folderManager)) {
+      log('  the old copy in ${old.folder} was not installed by the Toolkit: left as it is');
+      return;
+    }
+    try {
+      for (final name in folderManagerZip.files) {
+        final f = File(p.join(old.folder!, name));
+        if (f.existsSync()) f.deleteSync();
+      }
+      final link = File(p.join(places.startMenu, '${t.name}.lnk'));
+      if (link.existsSync()) link.deleteSync();
+      final menu = Directory(places.startMenu);
+      if (menu.existsSync() && menu.listSync().isEmpty) menu.deleteSync();
+      final dir = Directory(old.folder!);
+      if (dir.existsSync() && dir.listSync().isEmpty) dir.deleteSync();
+      log('  the old copy is removed (its settings file is kept)');
+    } catch (e) {
+      log('  the old copy could not be removed completely: $e');
+    }
+  }
+
   /// Looks again until [test] holds or [limit] passes
   Future<Installed?> _waitFor(FeedTool t, bool Function(Installed) test, Duration limit) async {
     final until = DateTime.now().add(limit);
@@ -320,6 +346,10 @@ class ToolInstaller {
   /// Whether the Toolkit can remove this copy (and if not, why)
   String? cannotUninstall(FeedTool t, Installed i) {
     if (!i.found) return '${t.name} is not installed.';
+    if (i.oldCopy) {
+      return 'This is the old version ${i.version} of ${t.name}. Press Update to replace it with the new program, '
+          'or delete its folder yourself if you no longer need it.';
+    }
     if (t.install.kind == 'zip' && (i.folder == null || !p.equals(i.folder!, places.folderManager))) {
       return 'This copy of ${t.name} was not installed by the Toolkit. Delete its folder yourself if you no longer need it.';
     }

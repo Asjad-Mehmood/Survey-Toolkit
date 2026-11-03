@@ -55,6 +55,7 @@ FeedTool roadpro(List<int> zip, {String version = '3.5', String? sha, int? size}
   install: builtInTools[1].install,
 );
 
+/// Project Folder Manager as a zip, as the Toolkit installed 6.2 and earlier
 FeedTool pfm(List<int> zip, {String version = '6.3'}) => FeedTool(
   id: 'folder-manager',
   name: 'Project Folder Manager',
@@ -62,6 +63,26 @@ FeedTool pfm(List<int> zip, {String version = '6.3'}) => FeedTool(
   page: 'https://www.exceltokml.com/project-folder-manager',
   version: version,
   download: FeedDownload(url: pfmUrl, file: 'Project_Folder_Manager.zip', size: zip.length, sha256: shaOf(zip)),
+  install: folderManagerZip,
+);
+
+const pfm7Url =
+    'https://github.com/Asjad-Mehmood/Project-manager/releases/download/v7.0.0/ProjectFolderManager-Setup.exe';
+final pfm7Setup = utf8.encode('pretend ProjectFolderManager-Setup.exe 7.0.0');
+
+/// Project Folder Manager 7: a program with an installer
+FeedTool pfm7() => FeedTool(
+  id: 'folder-manager',
+  name: 'Project Folder Manager',
+  platform: 'Windows',
+  page: 'https://www.exceltokml.com/project-folder-manager',
+  version: '7.0.0',
+  download: FeedDownload(
+    url: pfm7Url,
+    file: 'ProjectFolderManager-Setup.exe',
+    size: pfm7Setup.length,
+    sha256: shaOf(pfm7Setup),
+  ),
   install: builtInTools[3].install,
 );
 
@@ -99,6 +120,29 @@ class FakePc {
   int Function(String exe, List<String> args) onRun = (_, _) => 0;
 
   String get slopeFolder => p.join(places.localAppData, 'SlopeCalculator');
+  String get pfm7Folder => p.join(places.localAppData, 'ProjectFolderManager');
+  static const pfm7Key = '${WindowsDetector.uninstallRoot}\\ProjectFolderManager';
+
+  /// What Project Folder Manager 7's installer leaves: its folder and its entry in Settings → Apps
+  void installPfm7() {
+    Directory(pfm7Folder).createSync(recursive: true);
+    File(p.join(pfm7Folder, 'ProjectFolderManager.exe')).writeAsStringSync('exe');
+    File(p.join(pfm7Folder, 'Uninstall.exe')).writeAsStringSync('uninstall');
+    registry[pfm7Key] = {'DisplayVersion': '7.0.0', 'InstallLocation': pfm7Folder};
+  }
+
+  /// A 6.2 copy the Toolkit unzipped, with its settings and its Start menu shortcut
+  void oldPfm(String folder) {
+    Directory(folder).createSync(recursive: true);
+    pfmZip('6.2');
+    for (final n in folderManagerZip.files) {
+      File(p.join(folder, n)).writeAsStringSync(n.endsWith('.hta') ? 'PROJECT FOLDER MANAGER  v6.2' : 'x');
+    }
+    File(p.join(folder, 'Project_Folder_Manager_config.txt')).writeAsStringSync('D:\\Projects');
+    Directory(places.startMenu).createSync(recursive: true);
+    File(p.join(places.startMenu, 'Project Folder Manager.lnk')).writeAsStringSync('lnk');
+  }
+
   static const slopeKey = '${WindowsDetector.uninstallRoot}\\SlopeCalculator';
 
   void installSlope(String version) {
@@ -301,6 +345,80 @@ void main() {
         const Installed(version: '6.2', folder: r'D:\Mine'),
       );
       expect(why, contains('was not installed by the Toolkit'));
+    });
+  });
+
+  group('Project Folder Manager 7, with an installer', () {
+    setUp(() {
+      pc.served[pfm7Url] = pfm7Setup;
+      pc.onRun = (exe, args) {
+        if (p.basename(exe) == 'ProjectFolderManager-Setup.exe') pc.installPfm7();
+        return 0;
+      };
+    });
+
+    test('found by its entry in Settings → Apps', () async {
+      expect((await pc.detector.find(pfm7())).found, isFalse);
+      pc.installPfm7();
+      final i = await pc.detector.find(pfm7());
+      expect(i.version, '7.0.0');
+      expect(i.oldCopy, isFalse);
+      expect(i.program, p.join(pc.pfm7Folder, 'ProjectFolderManager.exe'));
+    });
+
+    test('a 6.2 copy is found as an old copy, so the update to 7 is offered', () async {
+      pc.oldPfm(pc.places.folderManager);
+      final i = await pc.detector.find(pfm7());
+      expect(i.version, '6.2');
+      expect(i.oldCopy, isTrue);
+      expect(i.note, contains('old version 6.2'));
+      expect(pc.installer().cannotUninstall(pfm7(), i), contains('Press Update'));
+    });
+
+    test('a new install runs the official installer silently', () async {
+      final r = await pc.installer().install(pfm7());
+      expect(r.ok, isTrue, reason: r.message);
+      expect(r.message, 'Project Folder Manager 7.0.0 is installed.');
+      expect(pc.runs.single.skip(1), ['/S']);
+    });
+
+    test(
+      'the update over the Toolkit\'s 6.2 copy removes that copy and its shortcut, and keeps the settings',
+      () async {
+        pc.oldPfm(pc.places.folderManager);
+        final r = await pc.installer().install(pfm7(), current: await pc.detector.find(pfm7()));
+        expect(r.ok, isTrue, reason: r.message);
+        expect(r.message, 'Project Folder Manager is updated to 7.0.0.');
+        for (final n in folderManagerZip.files) {
+          expect(File(p.join(pc.places.folderManager, n)).existsSync(), isFalse, reason: n);
+        }
+        expect(File(p.join(pc.places.folderManager, 'Project_Folder_Manager_config.txt')).existsSync(), isTrue);
+        expect(Directory(pc.places.startMenu).existsSync(), isFalse);
+        expect((await pc.detector.find(pfm7())).oldCopy, isFalse);
+      },
+    );
+
+    test('a 6.2 copy the user unzipped elsewhere is left as it is', () async {
+      final own = p.join(pc.root.path, 'D', 'PFM');
+      pc.oldPfm(own);
+      final detector = WindowsDetector(
+        places: pc.places,
+        folderManagerFolder: () => own,
+        registry: (key) async => pc.registry[key],
+      );
+      final current = await detector.find(pfm7());
+      expect(current.oldCopy, isTrue);
+      final r = await pc.installer(detector: detector).install(pfm7(), current: current);
+      expect(r.ok, isTrue, reason: r.message);
+      expect(File(p.join(own, 'Project_Folder_Manager.hta')).existsSync(), isTrue);
+    });
+
+    test('the open 6.2 program blocks the update', () async {
+      pc.oldPfm(pc.places.folderManager);
+      pc.running.add('Project_Folder_Manager.exe');
+      final r = await pc.installer().install(pfm7(), current: await pc.detector.find(pfm7()));
+      expect(r.blocked, isTrue);
+      expect(pc.runs, isEmpty);
     });
   });
 
