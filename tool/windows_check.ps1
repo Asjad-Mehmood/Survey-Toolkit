@@ -115,7 +115,8 @@ $want = @{}
 $programs = @(
   @{ id = 'excel-to-kml'; name = 'Excel to KML'; repo = 'Asjad-Mehmood/kml-convertor'; file = 'ExcelToKML-Setup.exe'; key = 'ExcelToKMLPro'; exe = @('ExcelToKML.exe', 'ExcelToKMLPro.exe'); opens = $true },
   @{ id = 'traverse'; name = 'Traverse & Level'; repo = 'Asjad-Mehmood/Traiverse'; file = 'TraverseLevel-Setup.exe'; key = 'TraversePro'; exe = @('TraverseLevel.exe', 'TraversePro.exe'); opens = $true },
-  @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe'); opens = $false }
+  @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe'); opens = $false },
+  @{ id = 'folder-manager'; name = 'Project Folder Manager'; repo = 'Asjad-Mehmood/Project-manager'; file = 'ProjectFolderManager-Setup.exe'; key = 'ProjectFolderManager'; exe = @('ProjectFolderManager.exe'); opens = $false }
 )
 foreach ($p in $programs) {
   $rel = Invoke-RestMethod -Headers $api -Uri "https://api.github.com/repos/$($p.repo)/releases/latest"
@@ -132,10 +133,7 @@ foreach ($p in $programs) {
 $zips = @(
   @{ id = 'roadpro'; name = 'RoadPro'; url = 'https://www.exceltokml.com/roadpro/RoadPro.zip'; file = 'RoadPro.zip'
      inner = 'RoadPro.lsp'; pattern = 'Version\s*:\s*([0-9.]+)'
-     install = @{ kind = 'autocad-bundle'; files = @('RoadPro.lsp', 'RP_PAVER.pat', 'README.txt'); keep = @(); main = 'RoadPro.lsp' } },
-  @{ id = 'folder-manager'; name = 'Project Folder Manager'; url = 'https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip'; file = 'Project_Folder_Manager.zip'
-     inner = 'Project_Folder_Manager.hta'; pattern = 'PROJECT FOLDER MANAGER\s+v([0-9.]+)'
-     install = @{ kind = 'zip'; files = @('Project_Folder_Manager.exe', 'Project_Folder_Manager.hta', 'READ_ME.txt', 'dashboard_icon.ico'); keep = @('Project_Folder_Manager_config.txt'); main = 'Project_Folder_Manager.exe' } }
+     install = @{ kind = 'autocad-bundle'; files = @('RoadPro.lsp', 'RP_PAVER.pat', 'README.txt'); keep = @(); main = 'RoadPro.lsp' } }
 )
 foreach ($z in $zips) {
   $f = Join-Path $work "feed-$($z.file)"
@@ -150,6 +148,19 @@ foreach ($z in $zips) {
 $feed = Join-Path $work 'feed.json'
 @{ schema = 1; tools = $tools } | ConvertTo-Json -Depth 6 | Set-Content -Path $feed -Encoding utf8
 
+# Project Folder Manager 6.2 as the Toolkit installed it before version 7: a zip in its own folder
+$z = @{ url = 'https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip'; file = 'Project_Folder_Manager.zip' }
+$f = Join-Path $work "feed-$($z.file)"
+Invoke-WebRequest -Uri $z.url -OutFile $f
+$x = Join-Path $work 'x-folder-manager'
+Expand-Archive -Path $f -DestinationPath $x -Force
+$v6 = [regex]::Match((Get-Content (Join-Path $x 'Project_Folder_Manager.hta') -Raw), 'PROJECT FOLDER MANAGER\s+v([0-9.]+)').Groups[1].Value
+$feed6 = Join-Path $work 'feed-6.json'
+@{ schema = 1; tools = @(@{ id = 'folder-manager'; name = 'Project Folder Manager'; platform = 'Windows'; page = 'https://www.exceltokml.com/'; version = $v6
+  download = @{ url = $z.url; file = $z.file; size = (Get-Item $f).Length; sha256 = (Sha $f) }
+  install = @{ kind = 'zip'; files = @('Project_Folder_Manager.exe', 'Project_Folder_Manager.hta', 'READ_ME.txt', 'dashboard_icon.ico'); keep = @('Project_Folder_Manager_config.txt'); main = 'Project_Folder_Manager.exe' } }) } |
+  ConvertTo-Json -Depth 6 | Set-Content -Path $feed6 -Encoding utf8
+
 function Toolkit([string] $verb, [string] $id, [string] $feedFile = $feed) {
   $out = Join-Path $work "result-$verb-$id.json"
   Remove-Item $out -ErrorAction SilentlyContinue
@@ -158,11 +169,11 @@ function Toolkit([string] $verb, [string] $id, [string] $feedFile = $feed) {
   Write-Host "  [$verb $id] exit $code : $($r.message)"
   return $r
 }
-function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
+function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator', 'ProjectFolderManager') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
 
 Step '4. The Toolkit installs every tool'
 # 4. the Toolkit installs every tool, from nothing
-foreach ($id in 'excel-to-kml', 'traverse', 'roadpro', 'folder-manager') {
+foreach ($id in 'excel-to-kml', 'traverse', 'roadpro') {
   $r = Toolkit 'install' $id
   Check ($r.ok -and $r.version -eq $want[$id]) "the Toolkit installs $id $($want[$id])"
   if ($id -in 'excel-to-kml', 'traverse') {
@@ -174,10 +185,27 @@ foreach ($id in 'excel-to-kml', 'traverse', 'roadpro', 'folder-manager') {
 }
 $xml = Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle\PackageContents.xml'
 Check ((Test-Path $xml) -and ((Get-Content $xml -Raw) -match 'LoadOnAutoCADStartup="True"')) 'RoadPro is an AutoCAD bundle that loads at start-up'
-$pfm = Join-Path $home_ 'apps\Project Folder Manager'
-Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager.hta')) 'Project Folder Manager is in the Toolkit''s folder'
-Check (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Survey Toolkit\Project Folder Manager.lnk')) 'Project Folder Manager has a Start menu shortcut'
 Check (@(Get-ChildItem (Join-Path $home_ 'downloads') -File -ErrorAction SilentlyContinue).Count -eq 0) 'no downloads left behind'
+
+Step '4b. Project Folder Manager: from the 6.2 zip to version 7''s installer'
+# 4b. a PC with the 6.2 zip the Toolkit installed before; the Toolkit updates it to version 7, an
+#     installed program, and tidies the old copy away, keeping its settings file for version 7
+$r = Toolkit 'install' 'folder-manager' $feed6
+Check ($r.ok -and $r.version -eq $v6) "the old way: the 6.2 zip ($v6) in the Toolkit's folder"
+$pfm = Join-Path $home_ 'apps\Project Folder Manager'
+$pfmLink = Join-Path ([Environment]::GetFolderPath('Programs')) 'Survey Toolkit\Project Folder Manager.lnk'
+Check ((Test-Path (Join-Path $pfm 'Project_Folder_Manager.hta')) -and (Test-Path $pfmLink)) 'with its Start menu shortcut'
+Set-Content -Path (Join-Path $pfm 'Project_Folder_Manager_config.txt') -Value 'D:\Projects'
+$old6 = Detect 'pfm-old-copy'
+Check (($old6.tools.'folder-manager'.version -eq $v6) -and $old6.tools.'folder-manager'.oldCopy) 'with version 7 in the feed, the 6.2 copy is found as an old copy'
+$r = Toolkit 'install' 'folder-manager'
+Check ($r.ok -and $r.version -eq $want['folder-manager']) "the Toolkit updates it to Project Folder Manager $($want['folder-manager'])"
+Check (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectFolderManager') 'version 7 is listed in Settings > Apps'
+Check (Test-Path (Join-Path $env:LOCALAPPDATA 'ProjectFolderManager\ProjectFolderManager.exe')) 'version 7''s program is installed'
+Check (-not (Test-Path (Join-Path $pfm 'Project_Folder_Manager.hta'))) 'the old 6.2 program is removed'
+Check (-not (Test-Path $pfmLink)) 'and its Start menu shortcut'
+Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'its settings file is kept, for version 7 to bring in'
+StopTools
 
 Step '5. An update: Slope Calculator 1.0.2 to the latest'
 # 5. an update: an older Slope Calculator (its v1.0.2 installer), then the Toolkit brings it up to date
@@ -228,11 +256,10 @@ foreach ($id in 'excel-to-kml', 'traverse', 'slope', 'folder-manager') {
 Check ($all.tools.roadpro.note -eq 'AutoCAD not found on this PC') 'says AutoCAD is not on this PC (RoadPro needs it)'
 
 Step '9. Removing RoadPro and Project Folder Manager'
-# 9. removing RoadPro and Project Folder Manager, keeping its settings
-Set-Content -Path (Join-Path $pfm 'Project_Folder_Manager_config.txt') -Value 'ROOT=D:\Projects'
+# 9. removing RoadPro, and Project Folder Manager with its own uninstaller; the 6.2 settings file stays
 $r = Toolkit 'uninstall' 'folder-manager'
-Check ($r.ok -and -not (Test-Path (Join-Path $pfm 'Project_Folder_Manager.hta'))) 'the Toolkit removes Project Folder Manager'
-Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'and keeps its settings file'
+Check ($r.ok -and -not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectFolderManager')) 'the Toolkit removes Project Folder Manager with its uninstaller'
+Check (Test-Path (Join-Path $pfm 'Project_Folder_Manager_config.txt')) 'and the 6.2 settings file is still there'
 $r = Toolkit 'uninstall' 'roadpro'
 Check ($r.ok -and -not (Test-Path (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins\RoadPro.bundle'))) 'the Toolkit removes RoadPro'
 $log = Join-Path $home_ 'toolkit.log'

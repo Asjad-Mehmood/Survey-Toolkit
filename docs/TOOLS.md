@@ -110,20 +110,27 @@ Same pattern as Excel to KML.
 
 ## Project Folder Manager
 
-- **Download:** `https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip`.
-  It holds `Project_Folder_Manager.exe`, `Project_Folder_Manager.hta`, `READ_ME.txt` and
-  `dashboard_icon.ico`.
-- **Version:** only inside the `.hta`, as `PROJECT FOLDER MANAGER  v6.2`. It's also in the
-  website's `lib/folderManager.ts`.
-- **How it's installed today:** unzip anywhere and double-click the `.exe`. It runs on Windows'
-  own `mshta.exe`.
-- **Settings:** `Project_Folder_Manager_config.txt` is kept **next to the `.hta`**. An update
-  must keep that file; its READ_ME says "Update: replace only the .hta file".
-- **How the Toolkit will install it:** unzip to
-  `%LOCALAPPDATA%\Survey Toolkit\apps\Project Folder Manager\` and add a Start menu shortcut.
-  To update, replace the four files and keep `Project_Folder_Manager_config.txt`.
-- **Copies unzipped by hand** can be anywhere, so the Toolkit can't find them. The card offers
-  "I already have it: choose its folder".
+**Version 7 and later (3 Nov 2026): a Windows program with an installer**, like Slope Calculator.
+
+- **Releases:** `github.com/Asjad-Mehmood/Project-manager`, `ProjectFolderManager-Setup.exe` and
+  `latest.json` (version and SHA-256).
+- **Installed:** per user in `%LOCALAPPDATA%\ProjectFolderManager`, listed under
+  `HKCU\…\Uninstall\ProjectFolderManager` with `DisplayVersion`. Program `ProjectFolderManager.exe`.
+- **Silent:** `/S`. It doesn't open afterwards (only with `/S /UPDATE`, its own updater). An open
+  copy is closed by force, so the Toolkit never runs it while the program is open.
+- **Settings:** in `%APPDATA%\Excel to KML\Project Folder Manager`. Version 7 offers to bring in
+  a 6.2 `Project_Folder_Manager_config.txt`, and looks for one in the Toolkit's folder too.
+
+**6.2 and earlier: a zip** (`https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip`)
+with `Project_Folder_Manager.exe`, `.hta`, `READ_ME.txt` and `dashboard_icon.ico`, the version only
+inside the `.hta` (`PROJECT FOLDER MANAGER  v6.2`) and the settings next to it. The Toolkit unzipped it
+to `%LOCALAPPDATA%\Survey Toolkit\apps\Project Folder Manager\` with a Start menu shortcut.
+
+**From 6.2 to 7:** with no version 7 in Settings → Apps, the Toolkit still finds a 6.2 copy (in its
+folder, or one the user chose) and reports it as an old copy, so it offers **Update**. After version
+7's installer has run, the Toolkit removes the 6.2 copy it installed itself (its four files and its
+Start menu shortcut) and keeps `Project_Folder_Manager_config.txt` for version 7 to bring in. A copy the
+user unzipped elsewhere is left alone.
 
 ## Decisions from T0
 

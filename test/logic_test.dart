@@ -45,8 +45,9 @@ void main() {
       expect(excel.install.exe, ['ExcelToKML.exe', 'ExcelToKMLPro.exe']);
       expect(excel.install.opensAfterSilentInstall, isTrue);
       final pfm = f.tools[3];
-      expect(pfm.install.kind, 'zip');
-      expect(pfm.install.keep, ['Project_Folder_Manager_config.txt']);
+      expect(pfm.install.kind, 'installer');
+      expect(pfm.install.registryKey, 'ProjectFolderManager');
+      expect(pfm.version, '7.0.0');
       expect(f.tools.last.problems.single, contains('latest.json'));
     });
 

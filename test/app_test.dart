@@ -84,7 +84,8 @@ void main() {
     expect(find.text('Uninstall'), findsNWidgets(2));
     expect(find.text('Open'), findsNWidgets(2));
     expect(find.text('Web app'), findsNWidgets(2));
-    expect(find.text('Already have it? Choose its folder'), findsOneWidget);
+    // Project Folder Manager 7 has an installer: no folder to choose any more
+    expect(find.text('Already have it? Choose its folder'), findsNothing);
     // the website's note on Slope Calculator is for the owner: its download is fine, so not shown
     expect(find.textContaining('latest.json is missing'), findsNothing);
     expect(find.textContaining('checked by its SHA-256'), findsOneWidget);

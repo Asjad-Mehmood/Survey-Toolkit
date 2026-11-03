@@ -24,12 +24,12 @@ final feed = Feed.from(jsonDecode(File('test/fixtures/feed.json').readAsStringSy
 FeedTool tool(String id) => feed.tools.firstWhere((t) => t.id == id);
 
 /// Every tool installed, each one version behind (the feed has Excel to KML 4.4.0, RoadPro 3.4,
-/// Traverse 2.1.0, Folder Manager 6.2, Slope 1.0.3)
+/// Traverse 2.1.0, Folder Manager 7.0.0, Slope 1.0.3)
 Map<String, Installed> allBehind() => {
   'excel-to-kml': const Installed(version: '4.3.1', folder: r'C:\X', program: r'C:\X\ExcelToKML.exe'),
   'roadpro': const Installed(version: '3.3', folder: r'C:\R'),
   'traverse': const Installed(version: '2.0.0', folder: r'C:\T', program: r'C:\T\TraverseLevel.exe'),
-  'folder-manager': const Installed(version: '6.1', folder: r'C:\F', program: r'C:\F\Project_Folder_Manager.exe'),
+  'folder-manager': const Installed(version: '6.9.0', folder: r'C:\F', program: r'C:\F\ProjectFolderManager.exe'),
   'slope': const Installed(version: '1.0.2', folder: r'C:\S', program: r'C:\S\SlopeCalculator.exe'),
 };
 
@@ -48,7 +48,7 @@ void main() {
     });
 
     test('Ask me, no download, given up at this version, up to date, no AutoCAD', () {
-      final found = allBehind()..['folder-manager'] = const Installed(version: '6.2', folder: r'C:\F');
+      final found = allBehind()..['folder-manager'] = const Installed(version: '7.0.0', folder: r'C:\F');
       final noDownload = [
         for (final t in feed.tools)
           t.id == 'slope'

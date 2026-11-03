@@ -155,6 +155,16 @@ class Feed {
   }
 }
 
+/// Project Folder Manager 6.2 and earlier: a zip the Toolkit unzipped into its own folder. Version 7
+/// installs like any other program; a 6.2 copy is still found, offered the update and tidied up
+/// afterwards (detect.dart, installer.dart).
+const folderManagerZip = InstallInfo(
+  kind: 'zip',
+  files: ['Project_Folder_Manager.exe', 'Project_Folder_Manager.hta', 'READ_ME.txt', 'dashboard_icon.ico'],
+  keep: ['Project_Folder_Manager_config.txt'],
+  main: 'Project_Folder_Manager.exe',
+);
+
 /// The five tools as T0 found them (the Toolkit's docs/TOOLS.md): how to find each one, no versions
 const builtInTools = [
   FeedTool(
@@ -194,17 +204,13 @@ const builtInTools = [
       opensAfterSilentInstall: true,
     ),
   ),
+  // version 7 and later: a Windows program with an installer (github.com/Asjad-Mehmood/Project-manager)
   FeedTool(
     id: 'folder-manager',
     name: 'Project Folder Manager',
     platform: 'Windows',
     page: 'https://www.exceltokml.com/project-folder-manager',
-    install: InstallInfo(
-      kind: 'zip',
-      files: ['Project_Folder_Manager.exe', 'Project_Folder_Manager.hta', 'READ_ME.txt', 'dashboard_icon.ico'],
-      keep: ['Project_Folder_Manager_config.txt'],
-      main: 'Project_Folder_Manager.exe',
-    ),
+    install: InstallInfo(kind: 'installer', registryKey: 'ProjectFolderManager', exe: ['ProjectFolderManager.exe']),
   ),
   FeedTool(
     id: 'slope',

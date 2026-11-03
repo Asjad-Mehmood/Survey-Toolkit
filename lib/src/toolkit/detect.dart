@@ -3,7 +3,9 @@
 //     HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\<key>, value DisplayVersion.
 //   RoadPro: the AutoCAD bundle the Toolkit will install (T3),
 //     %APPDATA%\Autodesk\ApplicationPlugins\RoadPro.bundle, version on line 3 of RoadPro.lsp.
-//   Project Folder Manager: the Toolkit's folder, or one the user chose, version inside the .hta.
+//   Project Folder Manager 7 and later: its entry in Settings → Apps (key ProjectFolderManager).
+//     Without one, a 6.2 copy (a zip in the Toolkit's folder, or one the user chose, version
+//     inside the .hta) is reported as an old copy, so the Toolkit offers the update to 7.
 // The parsing is kept apart from Windows so it can be tested anywhere.
 import 'dart:io';
 
@@ -13,7 +15,7 @@ import 'feed.dart';
 import 'version.dart';
 
 class Installed {
-  const Installed({this.version, this.folder, this.program, this.note});
+  const Installed({this.version, this.folder, this.program, this.note, this.oldCopy = false});
 
   /// Not found on this PC
   static const none = Installed();
@@ -28,6 +30,9 @@ class Installed {
   /// Something to tell the user ("AutoCAD not found")
   final String? note;
 
+  /// Project Folder Manager 6.2 or earlier, from a zip, where the tool now has an installer
+  final bool oldCopy;
+
   bool get found => version != null;
 
   Map<String, Object?> toJson() => {
@@ -35,6 +40,7 @@ class Installed {
     if (folder != null) 'folder': folder,
     if (program != null) 'program': program,
     if (note != null) 'note': note,
+    if (oldCopy) 'oldCopy': true,
   };
 }
 
@@ -137,7 +143,20 @@ class WindowsDetector implements Detector {
       case 'installer':
         final apps = await _reg('$uninstallRoot\\${i.registryKey}');
         final v = apps?['DisplayVersion'];
-        if (apps == null || v == null || !looksLikeVersion(v)) return Installed.none;
+        if (apps == null || v == null || !looksLikeVersion(v)) {
+          if (tool.id != 'folder-manager') return Installed.none;
+          final old = _zipCopy(folderManagerZip);
+          return old.found
+              ? Installed(
+                  version: old.version,
+                  folder: old.folder,
+                  program: old.program,
+                  note:
+                      'The old version ${old.version}. Update installs the new program; your projects stay as they are.',
+                  oldCopy: true,
+                )
+              : Installed.none;
+        }
         var folder = apps['InstallLocation'];
         if (folder == null || folder.isEmpty) {
           final own = await _reg('HKCU\\Software\\${i.registryKey}');
@@ -161,14 +180,19 @@ class WindowsDetector implements Detector {
         if (!lsp.existsSync()) return Installed(note: note);
         return Installed(version: lspVersion(_head(lsp)) ?? '0', folder: places.roadproBundle, note: note);
       case 'zip':
-        for (final folder in [?folderManagerFolder(), places.folderManager]) {
-          final hta = File(p.join(folder, 'Project_Folder_Manager.hta'));
-          if (!hta.existsSync()) continue;
-          final v = htaVersion(_head(hta, 400 * 1024));
-          final exe = File(p.join(folder, i.main ?? 'Project_Folder_Manager.exe'));
-          return Installed(version: v ?? '0', folder: folder, program: exe.existsSync() ? exe.path : null);
-        }
-        return Installed.none;
+        return _zipCopy(i);
+    }
+    return Installed.none;
+  }
+
+  /// Project Folder Manager from a zip: the folder the user chose, or the Toolkit's
+  Installed _zipCopy(InstallInfo i) {
+    for (final folder in [?folderManagerFolder(), places.folderManager]) {
+      final hta = File(p.join(folder, 'Project_Folder_Manager.hta'));
+      if (!hta.existsSync()) continue;
+      final v = htaVersion(_head(hta, 400 * 1024));
+      final exe = File(p.join(folder, i.main ?? 'Project_Folder_Manager.exe'));
+      return Installed(version: v ?? '0', folder: folder, program: exe.existsSync() ? exe.path : null);
     }
     return Installed.none;
   }
