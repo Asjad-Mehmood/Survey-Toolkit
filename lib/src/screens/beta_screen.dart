@@ -1,4 +1,5 @@
-// Signed in, but not (or not yet known to be) on the beta list.
+// Signed in, but the website hasn't (yet) said this account may use the Toolkit: while it is open to
+// everyone that is only the first check, or no connection; when an admin closes it, the reason.
 import 'package:flutter/material.dart';
 
 import '../account/account.dart';
@@ -16,10 +17,10 @@ class BetaScreen extends StatelessWidget {
     final waiting = account.beta == BetaAccess.unknown && !account.offline;
     final text = switch (account.beta) {
       BetaAccess.closed =>
-        account.closedMessage ?? 'The $appName beta is closed. It opens to everyone when the test is over.',
+        account.closedMessage ?? 'The $appName isn\'t open to this account just now. Please try again later.',
       _ when account.offline =>
-        'No connection to exceltokml.com, so the beta list can\'t be checked. Connect and press Check again.',
-      _ => 'Checking the beta list…',
+        'No connection to exceltokml.com, so your account can\'t be checked. Connect and press Check again.',
+      _ => 'Checking your account…',
     };
     return Scaffold(
       body: SafeArea(
@@ -29,7 +30,7 @@ class BetaScreen extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: SectionCard(
-                title: '$appName beta',
+                title: appName,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

@@ -1,4 +1,4 @@
-# Survey Toolkit (beta test)
+# Survey Toolkit
 
 One Windows program that installs and keeps up to date every survey program from
 [exceltokml.com](https://www.exceltokml.com):
@@ -11,18 +11,18 @@ One Windows program that installs and keeps up to date every survey program from
 | Project Folder Manager | Windows |
 | Slope Calculator | Web app and Windows |
 
-**This is a test, kept apart from everything else.** The Toolkit uses each program's own
-official download and installer. It changes nothing in those programs or on the website's
-existing pages. See [docs/PLAN.md](docs/PLAN.md) for the phases and the separation rules, and
+**Public from v1.1.0**, for everyone with a free exceltokml.com account: download it from
+[exceltokml.com/toolkit](https://www.exceltokml.com/toolkit). The Toolkit uses each program's own
+official download and installer, checked by SHA-256. See [docs/PLAN.md](docs/PLAN.md) for the phases and the separation rules, and
 [docs/TOOLS.md](docs/TOOLS.md) for how each program is found, installed, updated and removed.
 
 Status: **T5, automatic updates (v0.4).** One window like the Microsoft 365 app: Home with every
 tool (install, update, remove, checked by SHA-256), and Excel to KML, Traverse & Level and Slope
 Calculator running inside the Toolkit, signed in already. The tools set to Automatic update by
 themselves, with a Windows notification, and the Toolkit can start with Windows in the tray.
-Tested end to end on a clean Windows PC (T7). Ready for the beta: see [docs/BETA.md](docs/BETA.md).
-Not released yet: releases are made only when the owner says so, as GitHub pre-releases (the first
-beta is v0.5.0).
+Tested end to end on a clean Windows PC (T7). The beta ran as v0.x GitHub pre-releases
+([docs/BETA.md](docs/BETA.md)); v1.1.0 and later are ordinary releases, made only when the owner
+says so. The website can close it to the public again: Admin → Settings → Survey Toolkit.
 
 ## Building
 

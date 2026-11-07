@@ -11,7 +11,7 @@ const websiteUrl = 'https://www.exceltokml.com';
 /// The website the program talks to (a test build can point at a copy with --dart-define=API_BASE=)
 const apiBase = String.fromEnvironment('API_BASE', defaultValue: websiteUrl);
 
-/// The Toolkit's own releases: pre-releases while it is a beta test
+/// The Toolkit's own releases: v0.x pre-releases during the beta, ordinary releases from v1.1.0
 const releasesRepo = 'Asjad-Mehmood/Survey-Toolkit';
 
 /// The same navy and survey gold as Excel to KML, Traverse & Level and Slope Calculator.

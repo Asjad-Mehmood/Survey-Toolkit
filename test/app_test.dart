@@ -26,7 +26,7 @@ void main() {
     await t.pumpWidget(h.app);
     await settle(t);
     expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
-    expect(find.textContaining('beta test'), findsOneWidget);
+    expect(find.textContaining('One account for every tool'), findsOneWidget);
 
     await t.enterText(find.widgetWithText(TextField, 'Email'), 'tester@example.com');
     await t.enterText(find.widgetWithText(TextField, 'Password'), 'wrong');
@@ -51,7 +51,7 @@ void main() {
     );
     await t.pumpWidget(h.app);
     await settle(t);
-    expect(find.textContaining('beta is closed'), findsOneWidget);
+    expect(find.textContaining('isn\'t open to this account'), findsOneWidget);
     expect(find.text('Check again'), findsOneWidget);
     expect(site.reports, isEmpty);
 
