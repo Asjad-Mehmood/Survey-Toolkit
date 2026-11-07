@@ -45,6 +45,7 @@ class InstallInfo {
     this.registryKey,
     this.exe = const [],
     this.opensAfterSilentInstall = false,
+    this.quietArgs = const [],
     this.files = const [],
     this.keep = const [],
     this.main,
@@ -55,7 +56,14 @@ class InstallInfo {
   final String kind;
   final String? registryKey;
   final List<String> exe;
+
+  /// The installer opens the program after a silent install, so it can't update in the background.
+  /// False when the feed gives [quietArgs]: then it installs without opening it.
   final bool opensAfterSilentInstall;
+
+  /// Switches for an install that doesn't open the program (Excel to KML from 4.4.3 and Traverse &
+  /// Level from 2.1.1: /S /NOLAUNCH). Empty: plain /S. Toolkits before 0.6.3 don't read this.
+  final List<String> quietArgs;
   final List<String> files;
   final List<String> keep;
   final String? main;
@@ -70,11 +78,21 @@ class InstallInfo {
     final key = j['registryKey'];
     if (kind == 'installer' && (key is! String || !RegExp(r'^[A-Za-z0-9_.-]{1,64}$').hasMatch(key))) return null;
     bool plainName(String s) => RegExp(r'^[A-Za-z0-9 _.&()-]{1,80}$').hasMatch(s) && !s.contains('..');
+    // only plain switches such as /NOLAUNCH, and always with /S, or not at all
+    final quiet = _strings(j['quietArgs']);
+    final quietArgs =
+        kind == 'installer' &&
+            quiet.length <= 4 &&
+            quiet.contains('/S') &&
+            quiet.every(RegExp(r'^/[A-Z]{1,16}$').hasMatch)
+        ? quiet
+        : const <String>[];
     return InstallInfo(
       kind: kind,
       registryKey: key is String ? key : null,
       exe: _strings(j['exe']).where(plainName).toList(),
-      opensAfterSilentInstall: j['opensAfterSilentInstall'] == true,
+      opensAfterSilentInstall: j['opensAfterSilentInstall'] == true && quietArgs.isEmpty,
+      quietArgs: quietArgs,
       files: _strings(j['files']).where(plainName).toList(),
       keep: _strings(j['keep']).where(plainName).toList(),
       main: j['main'] is String && plainName(j['main']! as String) ? j['main']! as String : null,

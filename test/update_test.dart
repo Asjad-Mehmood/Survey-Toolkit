@@ -13,6 +13,7 @@ import 'package:survey_toolkit/src/state/store.dart';
 import 'package:survey_toolkit/src/toolkit/detect.dart';
 import 'package:survey_toolkit/src/toolkit/feed.dart';
 import 'package:survey_toolkit/src/toolkit/installer.dart';
+import 'package:survey_toolkit/src/toolkit/status.dart';
 import 'package:survey_toolkit/src/toolkit/toolkit_model.dart';
 import 'package:survey_toolkit/src/update/auto_update.dart';
 import 'package:survey_toolkit/src/update/background.dart';
@@ -45,6 +46,26 @@ void main() {
       expect(plan.now.map((t) => t.id), ['roadpro', 'slope']);
       // Excel to KML and Traverse open themselves after their installer: when opened from the Toolkit
       expect(plan.waiting, {'excel-to-kml': Waits.untilOpened, 'traverse': Waits.untilOpened});
+    });
+
+    test('Excel to KML and Traverse with quiet install switches update in the background too', () {
+      final quiet = Feed.from(
+        jsonDecode(
+          File('test/fixtures/feed.json').readAsStringSync().replaceAll(
+            '"opensAfterSilentInstall":true',
+            '"opensAfterSilentInstall":true,"quietArgs":["/S","/NOLAUNCH"]',
+          ),
+        ),
+      )!;
+      final plan = planUpdates(
+        tools: quiet.tools,
+        installed: (id) => allBehind()[id] ?? Installed.none,
+        modeOf: (_) => UpdateMode.automatic,
+      );
+      expect(plan.now.map((t) => t.id), ['excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope']);
+      expect(plan.waiting, isEmpty);
+      final excel = quiet.tools.first;
+      expect(updatesWhenOpened(excel, ToolState.updateAvailable, UpdateMode.automatic), isFalse);
     });
 
     test('Ask me, no download, given up at this version, up to date, no AutoCAD', () {

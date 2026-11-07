@@ -64,6 +64,36 @@ void main() {
       expect(f.tools[1].download, isNotNull);
     });
 
+    test('quiet install switches: the tool then updates in the background', () {
+      final j = fixtureFeed();
+      final install = ((j['tools']! as List)[0] as Map)['install'] as Map;
+      install['quietArgs'] = ['/S', '/NOLAUNCH'];
+      final excel = Feed.from(j)!.tools[0];
+      expect(excel.install.quietArgs, ['/S', '/NOLAUNCH']);
+      expect(excel.install.opensAfterSilentInstall, isFalse);
+      // a feed without them (an installer before /NOLAUNCH): plain /S, updated when opened
+      final plain = Feed.from(fixtureFeed())!.tools[0];
+      expect(plain.install.quietArgs, isEmpty);
+      expect(plain.install.opensAfterSilentInstall, isTrue);
+    });
+
+    test('quiet install switches that aren\'t plain switches with /S are ignored', () {
+      for (final bad in [
+        ['/NOLAUNCH'],
+        ['/S', '/D=C:\\Windows'],
+        ['/S', 'calc.exe'],
+        ['/S', '/nolaunch'],
+        ['/S', '/A', '/B', '/C', '/E'],
+        '/S /NOLAUNCH',
+      ]) {
+        final j = fixtureFeed();
+        (((j['tools']! as List)[0] as Map)['install'] as Map)['quietArgs'] = bad;
+        final excel = Feed.from(j)!.tools[0];
+        expect(excel.install.quietArgs, isEmpty, reason: '$bad');
+        expect(excel.install.opensAfterSilentInstall, isTrue, reason: '$bad');
+      }
+    });
+
     test('file names with paths or odd characters are dropped', () {
       final j = fixtureFeed();
       (((j['tools']! as List)[0] as Map)['install'] as Map)['exe'] = ['..\\..\\Windows\\evil.exe', 'ExcelToKML.exe'];

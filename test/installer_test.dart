@@ -382,6 +382,27 @@ void main() {
       expect(pc.runs.single.skip(1), ['/S']);
     });
 
+    test('with quiet install switches in the feed, the installer runs with them', () async {
+      final t = pfm7();
+      final quiet = FeedTool(
+        id: t.id,
+        name: t.name,
+        platform: t.platform,
+        page: t.page,
+        version: t.version,
+        download: t.download,
+        install: const InstallInfo(
+          kind: 'installer',
+          registryKey: 'ProjectFolderManager',
+          exe: ['ProjectFolderManager.exe'],
+          quietArgs: ['/S', '/NOLAUNCH'],
+        ),
+      );
+      final r = await pc.installer().install(quiet);
+      expect(r.ok, isTrue, reason: r.message);
+      expect(pc.runs.single.skip(1), ['/S', '/NOLAUNCH']);
+    });
+
     test(
       'the update over the Toolkit\'s 6.2 copy removes that copy and its shortcut, and keeps the settings',
       () async {

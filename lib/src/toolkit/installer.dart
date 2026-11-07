@@ -128,7 +128,7 @@ class ToolInstaller {
       progress(const JobProgress('Installing'));
       switch (t.install.kind) {
         case 'installer':
-          final code = await _run(file.path, const ['/S']);
+          final code = await _run(file.path, t.install.quietArgs.isEmpty ? const ['/S'] : t.install.quietArgs);
           log('  installer exit $code');
           if (code != 0) throw _Refused('The ${t.name} installer stopped (code $code). Nothing else was changed.');
         case 'autocad-bundle':
