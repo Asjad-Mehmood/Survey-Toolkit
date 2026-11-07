@@ -174,6 +174,11 @@ check shows a web app drawn inside the window.
 - **Excel to KML and Traverse & Level** (set to Automatic): opening them from the Toolkit (their
   card's Open, or the workspace's Windows app button) updates them first, and their installer
   opens the new version.
+- **From v0.6.3** the feed can give a tool **quiet install switches** (`quietArgs`, for example
+  `["/S", "/NOLAUNCH"]`). The Toolkit then installs it with them and updates it in the background
+  like the others. The website gives them only for installers that have the switch: Excel to KML
+  from 4.4.3 and Traverse & Level from 2.1.1. Older Toolkits don't read `quietArgs`, so they keep
+  updating these two when opened.
 - **Notifications** come from the Toolkit's tray icon, so Windows 10 and 11 show them as ordinary
   notifications: "Slope Calculator updated to 1.0.3", or "Updated: …" for several.
 - **The tray icon** (the Windows program's own, `windows/runner/tray.cpp`): click to open; right
@@ -290,7 +295,8 @@ These are not part of the test. Each one is listed here and asked for before it 
 
 1. **`/NOLAUNCH`** in the Excel to KML and Traverse & Level installers, so a silent update from
    the Toolkit doesn't open the program. Slope Calculator already behaves like this: it reopens
-   only with `/UPDATE`.
+   only with `/UPDATE`. *Made in Excel to KML 4.4.3 and Traverse & Level 2.1.1; the Toolkit
+   uses it from v0.6.3.*
 2. **"Managed by the Toolkit"** in the three programs' own update checks, so they leave
    updating to the Toolkit when it is installed and two updaters don't offer the same update.
 3. **A `latest.json` for RoadPro and Project Folder Manager**, published with each new zip.

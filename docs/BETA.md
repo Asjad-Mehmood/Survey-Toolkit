@@ -70,6 +70,7 @@ most of it already (PCs, versions, failures); the rest needs their eyes.
 - [ ] When v0.5.1 is published (day 7): the Toolkit offers it, updates itself and opens again
 - [ ] A tool update arriving with nobody pressing anything, and its notification
 - [ ] Excel to KML or Traverse & Level behind: opening it from the Toolkit updates it first
+- [ ] Excel to KML 4.4.3 / Traverse & Level 2.1.1 or later out: they update in the background, without opening
 
 **At the end**
 - [ ] Windows Settings → Apps → Survey Toolkit → Uninstall: the Toolkit goes, the tools stay

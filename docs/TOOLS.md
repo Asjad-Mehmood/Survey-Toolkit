@@ -140,7 +140,9 @@ user unzipped elsewhere is left alone.
 3. **Automatic updates and "opens itself".** Excel to KML and Traverse & Level open after
    every silent install. For them, automatic updates (T4) run when the user opens the program
    from the Toolkit (update, then open) until those installers get `/NOLAUNCH` (PLAN.md,
-   product change 1). Slope Calculator can update in the background now.
+   product change 1). Slope Calculator can update in the background now. *From Excel to KML
+   4.4.3 and Traverse & Level 2.1.1 the installers take `/S /NOLAUNCH`; the website's feed then
+   gives `quietArgs` and the Toolkit (v0.6.3 and later) updates them in the background too.*
 4. **The three programs' updaters stay as they are.** They use the same installer and the same
    `latest.json`, so if both updaters run, the result is the same.
 5. **Feed (T1):** read the three programs' `latest.json` and GitHub release. Keep RoadPro and
