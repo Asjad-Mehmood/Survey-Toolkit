@@ -289,6 +289,22 @@ If the beta went well:
 
 If not, the Toolkit folders and tables are removed.
 
+**As built (website PR after #104, Toolkit v1.1.0):**
+
+- **Who:** Admin → Settings → Survey Toolkit → *Open to everyone* (on by default). On, the
+  website answers every signed-in account "may use it" (`/api/toolkit/me`, download, events,
+  sign-in hand-over), so installed Toolkits open for everyone without a new release. Off, it is
+  the beta again: admins and the testers.
+- **Page:** `exceltokml.com/toolkit`, the hub chosen for the front page, indexed and in the
+  menu, footer and sitemap. Download goes through `/api/toolkit/download` to the newest release.
+  `/toolkit-beta` sends visitors there.
+- **Home page:** Admin → Settings → Home page → *Survey Toolkit* shows the same hub as the home
+  page (only while the Toolkit is open to everyone).
+- **Downloads:** a "Get them all with the Survey Toolkit" banner above every program's download.
+- **The program:** no "beta" wording. v1.x tags make ordinary releases (this repository's
+  "latest"); v0.x tags still make beta pre-releases.
+- **Not done:** code signing (SmartScreen still warns; the page's FAQ says what to press).
+
 ## Product changes, after the test
 
 These are not part of the test. Each one is listed here and asked for before it is made.

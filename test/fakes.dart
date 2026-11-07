@@ -51,7 +51,7 @@ class FakeSite {
           'success': true,
           'tester': tester,
           'admin': false,
-          if (!tester) 'message': 'The Survey Toolkit beta is closed. It opens to everyone when the test is over.',
+          if (!tester) 'message': 'The Survey Toolkit isn\'t open to this account just now. Please try again later.',
         });
       case '/api/toolkit/feed':
         return http.Response(feed, 200, headers: {'content-type': 'application/json'});

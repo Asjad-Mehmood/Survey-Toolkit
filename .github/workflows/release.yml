@@ -1,15 +1,16 @@
-name: Build and Release (beta)
+name: Build and Release
 
-# Runs when a tag such as v0.1.0 is pushed, and only when the owner says to release.
+# Runs when a tag such as v1.1.0 is pushed, and only when the owner says to release.
 #
-# While the Toolkit is a beta test its releases are GitHub PRE-releases: they never become this
-# repository's "latest", and they never touch any product's releases. Installed Toolkits find them
-# through the list of releases (lib/src/update/update_check.dart). The release description comes
-# from docs/releases/<tag>.md.
+# v1.x (public, from v1.1.0): an ordinary release, this repository's "latest". v0.x (the beta):
+# a GitHub PRE-release, never "latest". Either way it never touches any product's releases.
+# Installed Toolkits find both through the list of releases (lib/src/update/update_check.dart).
+# The release description comes from docs/releases/<tag>.md.
 on:
   push:
     tags:
       - 'v0.*'
+      - 'v1.*'
 
 permissions:
   contents: write
@@ -27,7 +28,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ github.ref_name }}".TrimStart('v')
-          if ($ver -notmatch '^0\.\d+\.\d+$') { throw "A beta release tag is v0 and two numbers, for example v0.1.0. Got: ${{ github.ref_name }}" }
+          if ($ver -notmatch '^[01]\.\d+\.\d+$') { throw "A release tag is v1 (or v0 for a beta) and two numbers, for example v1.1.0. Got: ${{ github.ref_name }}" }
           "VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - uses: subosito/flutter-action@v2
@@ -71,13 +72,13 @@ jobs:
           f="docs/releases/${GITHUB_REF_NAME}.md"
           if [ -f "$f" ]; then echo "path=$f" >> "$GITHUB_OUTPUT"; else echo "path=" >> "$GITHUB_OUTPUT"; fi
 
-      - name: Publish the pre-release
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          name: Survey Toolkit ${{ github.ref_name }} (beta)
+          name: Survey Toolkit ${{ github.ref_name }}${{ startsWith(github.ref_name, 'v0.') && ' (beta)' || '' }}
           body_path: ${{ steps.notes.outputs.path }}
-          prerelease: true
-          make_latest: false
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          make_latest: ${{ startsWith(github.ref_name, 'v0.') && 'false' || 'true' }}
           files: |
             installer/SurveyToolkit-Setup.exe
             installer/latest.json

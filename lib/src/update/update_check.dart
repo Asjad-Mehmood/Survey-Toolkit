@@ -1,6 +1,7 @@
-// The Toolkit's self-update rules, kept apart from Windows so they can be tested. The Toolkit's
-// releases are GitHub pre-releases while it is a beta test, and GitHub's "latest" link skips
-// pre-releases, so it reads the list of releases and takes the newest one with both files.
+// The Toolkit's self-update rules, kept apart from Windows so they can be tested. The beta's
+// releases (v0.x) were GitHub pre-releases, which GitHub's "latest" link skips, and the
+// repository has empty releases too, so it reads the list of releases and takes the newest one
+// with both files: v1.1.0 and later, ordinary releases, the same way.
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
