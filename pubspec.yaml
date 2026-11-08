@@ -43,7 +43,9 @@ dependencies:
       ref: 3a63a8db480953e103fd96b9ede9fe1a34f61f2a
   shared_preferences: ^2.5.6
   url_launcher: ^6.3.3
-  webview_windows: ^0.4.0
+  # 0.4.0 with pen presses sent where the pen is (third_party/webview_windows/README.toolkit.md)
+  webview_windows:
+    path: third_party/webview_windows
 
 dev_dependencies:
   flutter_test:
