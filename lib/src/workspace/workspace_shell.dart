@@ -463,9 +463,13 @@ class _AppPanel extends StatelessWidget {
 /// window as the workspace shows it, without a sign-in (the app shows its own). Nothing else of the
 /// Toolkit is reachable from it.
 class WorkspacePreview extends StatefulWidget {
-  const WorkspacePreview({super.key, required this.appId, this.views = webView2Factory});
+  const WorkspacePreview({super.key, required this.appId, this.views = webView2Factory, this.url});
   final String appId;
   final AppViewFactory views;
+
+  /// For the Windows test of drop-down lists (`--preview-url=http://localhost:…`): this page
+  /// instead of the app's own, in the same window
+  final String? url;
 
   @override
   State<WorkspacePreview> createState() => _WorkspacePreviewState();
@@ -476,7 +480,9 @@ class _WorkspacePreviewState extends State<WorkspacePreview> {
     (a) => a.id == widget.appId,
     orElse: () => workspaceApps.last,
   );
-  late final AppViewHandle? _view = _app.native ? null : widget.views(_app, () async => '$apiBase${_app.path}');
+  late final AppViewHandle? _view = _app.native
+      ? null
+      : widget.views(_app, () async => widget.url ?? '$apiBase${_app.path}');
 
   @override
   void dispose() {

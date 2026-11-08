@@ -58,6 +58,21 @@ jobs:
             Copy-Item "C:\Windows\System32\$dll" build\windows\x64\runner\Release\
           }
 
+      # the drop-down lists in the real window: what happens to a mouse press, written to the summary
+      - name: Drop-down lists in the real Toolkit window
+        continue-on-error: true
+        shell: pwsh
+        run: pwsh tool/selects_check.ps1
+
+      - name: Keep the drop-down screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop-down-screenshots
+          path: shots-selects/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Build the installer
         shell: pwsh
         working-directory: installer
