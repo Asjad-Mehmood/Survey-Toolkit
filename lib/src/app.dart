@@ -15,6 +15,7 @@ import 'update/auto_update.dart';
 import 'update/background.dart';
 import 'update/updater.dart';
 import 'workspace/app_view.dart';
+import 'workspace/apps.dart';
 import 'workspace/workspace_shell.dart';
 
 class ToolkitApp extends StatelessWidget {
@@ -25,6 +26,7 @@ class ToolkitApp extends StatelessWidget {
     required this.settings,
     this.checkUpdates = true,
     this.views = webView2Factory,
+    this.native = folderManagerView,
     this.background,
   });
   final Account account;
@@ -36,6 +38,9 @@ class ToolkitApp extends StatelessWidget {
 
   /// How the workspace shows a web app (WebView2; a stand-in in tests)
   final AppViewFactory views;
+
+  /// How the workspace shows Project Folder Manager (the program; a stand-in in tests)
+  final NativeViewFactory native;
 
   /// Looks for a new Toolkit a few seconds after opening (off in tests)
   final bool checkUpdates;
@@ -55,6 +60,7 @@ class ToolkitApp extends StatelessWidget {
         settings: settings,
         checkUpdates: checkUpdates,
         views: views,
+        native: native,
         background: background ?? Background(tray: NoTray(), startup: _NoStartup()),
       ),
     ),
@@ -68,6 +74,7 @@ class _Gate extends StatefulWidget {
     required this.settings,
     required this.checkUpdates,
     required this.views,
+    required this.native,
     required this.background,
   });
   final Account account;
@@ -75,6 +82,7 @@ class _Gate extends StatefulWidget {
   final AppSettings settings;
   final bool checkUpdates;
   final AppViewFactory views;
+  final NativeViewFactory native;
   final Background background;
 
   @override
@@ -148,7 +156,14 @@ class _GateState extends State<_Gate> {
         if (mounted && _started) _auto.start();
       });
     }
-    return WorkspaceShell(account: a, model: widget.model, settings: widget.settings, views: widget.views, auto: _auto);
+    return WorkspaceShell(
+      account: a,
+      model: widget.model,
+      settings: widget.settings,
+      views: widget.views,
+      native: widget.native,
+      auto: _auto,
+    );
   }
 }
 

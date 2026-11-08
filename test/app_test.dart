@@ -273,13 +273,12 @@ void main() {
       return h;
     }
 
-    testWidgets('a sidebar with Home and the three web apps; RoadPro and Folder Manager stay on Home', (t) async {
+    testWidgets('a sidebar with Home, the three web apps and Project Folder Manager; RoadPro stays on Home', (t) async {
       await open(t);
-      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope']) {
+      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Folders']) {
         expect(find.byKey(ValueKey('workspace $label')), findsOneWidget, reason: label);
       }
       expect(find.byKey(const ValueKey('workspace RoadPro')), findsNothing);
-      expect(find.byKey(const ValueKey('workspace Project Folder Manager')), findsNothing);
       expect(find.text('1 update available'), findsOneWidget, reason: 'Home is the Tools page');
     });
 
@@ -312,11 +311,34 @@ void main() {
       expect(find.text('Windows app'), findsNothing);
     });
 
+    testWidgets('Project Folder Manager runs inside the Toolkit: no web window, no sign-in handover, kept open', (
+      t,
+    ) async {
+      final site = FakeSite();
+      final h = await open(t, site: site);
+      await t.tap(find.byKey(const ValueKey('workspace Folders')));
+      await settle(t);
+      expect(find.text('Project Folder Manager runs here'), findsOneWidget);
+      expect(find.text('Project Folder Manager'), findsWidgets, reason: 'the header');
+      expect(h.views, isEmpty, reason: 'not a web app');
+      expect(site.handoffs, isEmpty);
+
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      expect(find.text('1 update available'), findsOneWidget);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('Project Folder Manager runs here'), findsOneWidget);
+      expect(h.natives, ['folder-manager'], reason: 'built once, still open');
+    });
+
     testWidgets('the app grid, like Google\'s, jumps to any app', (t) async {
       await open(t);
       await t.tap(find.byTooltip('Switch app'));
       await settle(t);
-      for (final name in ['Home', 'Excel to KML', 'Traverse & Level', 'Slope Calculator']) {
+      for (final name in ['Home', 'Excel to KML', 'Traverse & Level', 'Slope Calculator', 'Project Folder Manager']) {
         expect(find.byKey(ValueKey('grid $name')), findsOneWidget, reason: name);
       }
       await t.tap(find.byKey(const ValueKey('grid Traverse & Level')));
@@ -325,7 +347,7 @@ void main() {
       expect(find.text('Traverse & Level'), findsWidgets);
     });
 
-    testWidgets('Ctrl+1 to Ctrl+4', (t) async {
+    testWidgets('Ctrl+1 to Ctrl+5', (t) async {
       final h = await open(t);
       await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
       await t.sendKeyEvent(LogicalKeyboardKey.digit2);

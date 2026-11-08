@@ -173,6 +173,13 @@ class Harness {
   }
   late final ToolInstaller? installer;
 
+  /// The Toolkit's own apps shown (Project Folder Manager), in order
+  final natives = <String>[];
+  Widget _native(WorkspaceApp app) {
+    natives.add(app.id);
+    return Center(child: Text('${app.name} runs here'));
+  }
+
   /// The app windows opened, in order
   final views = <FakeView>[];
   AppViewHandle _view(WorkspaceApp app, Future<String> Function() start) {
@@ -197,6 +204,7 @@ class Harness {
     settings: settings,
     checkUpdates: false,
     views: _view,
+    native: _native,
     background: background,
   );
 }

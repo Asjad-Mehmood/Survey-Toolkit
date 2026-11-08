@@ -305,6 +305,13 @@ If not, the Toolkit folders and tables are removed.
   "latest"); v0.x tags still make beta pre-releases.
 - **Not done:** code signing (SmartScreen still warns; the page's FAQ says what to press).
 
+**Project Folder Manager in the workspace (v1.1.0):** its repository exports `FolderManagerView`
+(`package:project_folder_manager`), the whole program as one widget. The Toolkit depends on it by
+git ref and shows it as the workspace's **Folders** page (Ctrl+5), next to the three web apps: no
+web window, no sign-in hand-over, the same settings file as the separate program
+(`%APPDATA%\Excel to KML\Project Folder Manager`). Inside the Toolkit it has no "Look for an
+update": a new version comes with a new ref in `pubspec.yaml` and a Toolkit release.
+
 ## Product changes, after the test
 
 These are not part of the test. Each one is listed here and asked for before it is made.

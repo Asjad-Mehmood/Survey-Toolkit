@@ -1,12 +1,13 @@
 // The workspace: like the Microsoft 365 app, one window with a sidebar. Home is the Tools page;
 // Excel to KML, Traverse & Level and Slope Calculator open inside the window, signed in already
-// (the website's single-use sign-in handover), and stay open in the background when you switch,
-// like tabs. Like Google's apps, the grid button in the header jumps to any of them too.
-// Ctrl+1 is Home, Ctrl+2 to Ctrl+4 the apps.
+// (the website's single-use sign-in handover), and Project Folder Manager runs inside it as part of
+// the Toolkit. Each stays open in the background when you switch, like tabs. Like Google's apps,
+// the grid button in the header jumps to any of them too. Ctrl+1 is Home, Ctrl+2 to Ctrl+5 the apps.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_folder_manager/project_folder_manager.dart' show FolderManagerView;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../account/account.dart';
@@ -19,6 +20,9 @@ import '../update/auto_update.dart';
 import 'app_view.dart';
 import 'apps.dart';
 
+/// Project Folder Manager itself, with this user's settings (the same as the separate program's)
+Widget folderManagerView(WorkspaceApp app) => const FolderManagerView();
+
 class WorkspaceShell extends StatefulWidget {
   const WorkspaceShell({
     super.key,
@@ -26,12 +30,14 @@ class WorkspaceShell extends StatefulWidget {
     required this.model,
     required this.settings,
     required this.views,
+    this.native = folderManagerView,
     this.auto,
   });
   final Account account;
   final ToolkitModel model;
   final AppSettings settings;
   final AppViewFactory views;
+  final NativeViewFactory native;
 
   /// The automatic updates, for the Tools page's Updates section
   final AutoUpdater? auto;
@@ -48,6 +54,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   /// The apps opened so far: they stay running when another page is shown
   final _open = <String, AppViewHandle>{};
+
+  /// The apps of the Toolkit's own (Project Folder Manager) opened so far: made once, kept running
+  final _nativeOpen = <String, Widget>{};
 
   @override
   void initState() {
@@ -79,7 +88,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _show(int page, {bool remember = true}) {
     if (page > 0) {
       final app = workspaceApps[page - 1];
-      _open.putIfAbsent(app.id, () => widget.views(app, () => _startOf(app)));
+      if (app.native) {
+        _nativeOpen.putIfAbsent(app.id, () => widget.native(app));
+      } else {
+        _open.putIfAbsent(app.id, () => widget.views(app, () => _startOf(app)));
+      }
     }
     if (remember) widget.model.store.write(_lastKey, page == 0 ? 'home' : workspaceApps[page - 1].id);
     setState(() => _page = page);
@@ -100,9 +113,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         auto: widget.auto,
       ),
       for (final app in workspaceApps)
-        _open[app.id] == null
-            ? const SizedBox.shrink()
-            : _AppPanel(app: app, view: _open[app.id]!, model: widget.model, switcher: _switcher()),
+        if (app.native)
+          _nativeOpen[app.id] == null
+              ? const SizedBox.shrink()
+              : _NativePanel(app: app, view: _nativeOpen[app.id]!, switcher: _switcher())
+        else
+          _open[app.id] == null
+              ? const SizedBox.shrink()
+              : _AppPanel(app: app, view: _open[app.id]!, model: widget.model, switcher: _switcher()),
     ];
     return CallbackShortcuts(
       bindings: {
@@ -310,6 +328,48 @@ class _AppGrid extends StatelessWidget {
   }
 }
 
+/// A program that is part of the Toolkit (Project Folder Manager): a slim header like the web apps,
+/// then the program itself, with its own top bar, keys and settings (the same as the separate
+/// program's, so both show the same project folders).
+class _NativePanel extends StatelessWidget {
+  const _NativePanel({required this.app, required this.view, required this.switcher});
+  final WorkspaceApp app;
+  final Widget view;
+  final Widget? switcher;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: c.card,
+        surfaceTintColor: Colors.transparent,
+        toolbarHeight: 48,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Icon(app.icon, color: c.ink),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                app.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        actions: [?switcher, const SizedBox(width: 8)],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: c.line),
+        ),
+      ),
+      body: view,
+    );
+  }
+}
+
 /// One app inside the window: its toolbar and its page
 class _AppPanel extends StatelessWidget {
   const _AppPanel({required this.app, required this.view, required this.model, required this.switcher});
@@ -416,11 +476,11 @@ class _WorkspacePreviewState extends State<WorkspacePreview> {
     (a) => a.id == widget.appId,
     orElse: () => workspaceApps.last,
   );
-  late final AppViewHandle _view = widget.views(_app, () async => '$apiBase${_app.path}');
+  late final AppViewHandle? _view = _app.native ? null : widget.views(_app, () async => '$apiBase${_app.path}');
 
   @override
   void dispose() {
-    _view.dispose();
+    _view?.dispose();
     super.dispose();
   }
 
@@ -435,7 +495,9 @@ class _WorkspacePreviewState extends State<WorkspacePreview> {
           _Sidebar(page: workspaceApps.indexOf(_app) + 1, wide: true, onPick: (_) {}),
           const VerticalDivider(width: 1),
           Expanded(
-            child: _AppPanel(app: _app, view: _view, model: null, switcher: null),
+            child: _app.native
+                ? _NativePanel(app: _app, view: folderManagerView(_app), switcher: null)
+                : _AppPanel(app: _app, view: _view!, model: null, switcher: null),
           ),
         ],
       ),

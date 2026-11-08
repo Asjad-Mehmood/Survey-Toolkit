@@ -120,6 +120,10 @@ Same pattern as Excel to KML.
   copy is closed by force, so the Toolkit never runs it while the program is open.
 - **Settings:** in `%APPDATA%\Excel to KML\Project Folder Manager`. Version 7 offers to bring in
   a 6.2 `Project_Folder_Manager_config.txt`, and looks for one in the Toolkit's folder too.
+- **Inside the Toolkit (v1.1.0):** the workspace's **Folders** page is Project Folder Manager
+  itself (`FolderManagerView` from its repository), so it works without the program installed.
+  Same settings file, so both show the same projects. Its version is the one in the Toolkit's
+  `pubspec.yaml`; the separate program keeps its own installer and updates.
 
 **6.2 and earlier: a zip** (`https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip`)
 with `Project_Folder_Manager.exe`, `.hta`, `READ_ME.txt` and `dashboard_icon.ico`, the version only

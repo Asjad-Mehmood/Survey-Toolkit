@@ -1,6 +1,6 @@
-// The apps the workspace shows inside the Toolkit's window: the three tools that are web apps.
-// RoadPro (it runs inside AutoCAD) and Project Folder Manager (a Windows HTML application) are
-// not part of the workspace; they stay on Home with the other tools.
+// The apps the workspace shows inside the Toolkit's window: the three tools that are web apps, and
+// Project Folder Manager, whose program is part of the Toolkit (FolderManagerView, from its own
+// repository). RoadPro runs inside AutoCAD, so it stays on Home with the other tools.
 import 'package:flutter/material.dart';
 
 class WorkspaceApp {
@@ -11,6 +11,7 @@ class WorkspaceApp {
     required this.path,
     required this.icon,
     required this.toolId,
+    this.native = false,
   });
 
   final String id;
@@ -25,7 +26,13 @@ class WorkspaceApp {
 
   /// The same tool as a Windows program, on Home
   final String toolId;
+
+  /// Part of the Toolkit itself (Project Folder Manager), not a web app: [path] is unused
+  final bool native;
 }
+
+/// How the workspace shows an app that is part of the Toolkit (the program itself; a stand-in in tests)
+typedef NativeViewFactory = Widget Function(WorkspaceApp app);
 
 const workspaceApps = [
   WorkspaceApp(
@@ -51,6 +58,15 @@ const workspaceApps = [
     path: '/slope-calculation/app',
     icon: Icons.trending_up_rounded,
     toolId: 'slope',
+  ),
+  WorkspaceApp(
+    id: 'folder-manager',
+    name: 'Project Folder Manager',
+    short: 'Folders',
+    path: '',
+    icon: Icons.folder_copy_outlined,
+    toolId: 'folder-manager',
+    native: true,
   ),
 ];
 
