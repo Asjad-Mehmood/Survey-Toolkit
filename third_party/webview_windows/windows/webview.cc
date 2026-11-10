@@ -480,6 +480,9 @@ void Webview::SetCursorPos(double x, double y) {
   point.x = static_cast<LONG>(x * scale_factor_);
   point.y = static_cast<LONG>(y * scale_factor_);
   last_cursor_pos_ = point;
+  // Survey Toolkit: also in the page's own units, for the wheel (SendScroll)
+  last_cursor_x_ = x;
+  last_cursor_y_ = y;
 
   // https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.774.44
   composition_controller_->SendMouseInput(
@@ -585,23 +588,50 @@ void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
 }
 
 void Webview::SendScroll(double delta, bool horizontal) {
+  // Survey Toolkit: the wheel goes to the page where the pointer is, through the DevTools
+  // protocol (Input.dispatchMouseEvent, a real wheel event at that point of the page).
+  //
+  // The package sent it with SendMouseInput at the page's top-left corner (0, 0): a page that
+  // scrolls as a whole still moved, but in one whose scrolling part is lower down (the Flutter
+  // web apps, such as Slope Calculator) it reached the header and nothing scrolled. Sent with
+  // SendMouseInput at the pointer instead, WebView2 drops it: this WebView is drawn off-screen
+  // for a message-only window, and a wheel anywhere but (0, 0) never reached the page (found
+  // with the real mouse wheel on a Windows runner, tool/scroll_check.ps1). See README.toolkit.md.
+  double zoom = 1.0;
+  webview_controller_->get_ZoomFactor(&zoom);
+  if (zoom <= 0.0) {
+    zoom = 1.0;
+  }
+  // the page's CSS pixels; delta is a wheel's notches as Flutter gives them (about 100 a notch,
+  // up positive), and the page's deltaY is the distance to scroll down, as in Chrome
+  const double x = last_cursor_x_ / zoom;
+  const double y = last_cursor_y_ / zoom;
+  const double dx = horizontal ? -delta : 0.0;
+  const double dy = horizontal ? 0.0 : -delta;
+  const std::wstring params =
+      L"{\"type\":\"mouseWheel\",\"x\":" + std::to_wstring(x) + L",\"y\":" +
+      std::to_wstring(y) + L",\"deltaX\":" + std::to_wstring(dx) +
+      L",\"deltaY\":" + std::to_wstring(dy) + L",\"pointerType\":\"mouse\"}";
+  if (SUCCEEDED(webview_->CallDevToolsProtocolMethod(
+          L"Input.dispatchMouseEvent", params.c_str(), nullptr))) {
+    return;
+  }
+
+  // the package's own way, if the DevTools protocol isn't there
   // delta * 6 gives me a multiple of WHEEL_DELTA (120)
   constexpr auto kScrollMultiplier = 6;
-
   auto offset = static_cast<short>(delta * kScrollMultiplier);
-
-  // Survey Toolkit: the wheel turns where the pointer is. The package sent it to the page's
-  // top-left corner (0, 0), so only a page that scrolls as a whole moved; in a page whose
-  // scrolling part is lower down (the Flutter web apps, such as Slope Calculator) it reached
-  // the header and nothing scrolled (see README.toolkit.md).
+  POINT point;
+  point.x = 0;
+  point.y = 0;
   if (horizontal) {
     composition_controller_->SendMouseInput(
         COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL, virtual_keys_.state(),
-        offset, last_cursor_pos_);
+        offset, point);
   } else {
     composition_controller_->SendMouseInput(COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
                                             virtual_keys_.state(), offset,
-                                            last_cursor_pos_);
+                                            point);
   }
 }
 

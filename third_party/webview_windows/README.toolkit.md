@@ -19,11 +19,14 @@ Touch has its own path (`SendPointerInput`) and is unchanged.
 ## 2. The wheel turns where the pointer is
 
 `windows/webview.cc`, `Webview::SendScroll`: the mouse wheel (and a touch pad's two-finger scroll)
-is handed to WebView2 at the pointer's position (`last_cursor_pos_`); the package sent it at the
-page's top-left corner, (0, 0). `lib/src/webview.dart` moves the pointer to the wheel's position
-first (`_setCursorPos(signal.localPosition)`), as for a press.
+goes to the page through the DevTools protocol, `Input.dispatchMouseEvent` with `mouseWheel` at
+the pointer's position in the page, a real wheel event there. `lib/src/webview.dart` moves the
+pointer to the wheel's position first (`_setCursorPos(signal.localPosition)`), as for a press.
 
-A page that scrolls as a whole still moved, since the wheel goes to it wherever it arrives. In a
-page whose scrolling part is lower down, as in the Flutter web apps (Slope Calculator), the wheel
-reached the header at the top and nothing scrolled. `tool/scroll_check.ps1` turns the real mouse
-wheel in the Toolkit's window on a Windows runner to check it.
+The package sent the wheel with `SendMouseInput` at the page's top-left corner, (0, 0). A page
+that scrolls as a whole still moved; in a page whose scrolling part is lower down, as in the
+Flutter web apps (Slope Calculator), it reached the header at the top and nothing scrolled. Sent
+with `SendMouseInput` at the pointer's position instead, WebView2 dropped it altogether (this
+WebView is drawn off-screen for a message-only window). Both were seen with the real mouse wheel
+in the Toolkit's window on a Windows runner (`tool/scroll_check.ps1`). If the DevTools protocol
+call fails, the package's own way is used.

@@ -23,6 +23,7 @@ public static class W {
   [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool r);
 }
 "@
 $script:fails = 0
@@ -36,11 +37,14 @@ function WaitLine([string] $pattern, [int] $seconds) {
   for ($i = 0; $i -lt $seconds * 4; $i++) { $m = Lines | Where-Object { $_ -match $pattern } | Select-Object -Last 1; if ($m) { return $m }; Start-Sleep -Milliseconds 250 }
   return $null
 }
-function Open([string] $arg) {
+# the window maximized, or at a given size (short enough that a page has to scroll)
+function Open([string] $arg, [int] $w = 0, [int] $h = 0) {
   Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 2
   $p = Start-Process -FilePath $Exe -ArgumentList $arg -PassThru
   for ($i = 0; $i -lt 60 -and $p.MainWindowHandle -eq 0; $i++) { Start-Sleep -Milliseconds 500; $p.Refresh() }
-  [void][W]::ShowWindow($p.MainWindowHandle, 3); Start-Sleep -Milliseconds 500
+  if ($w -gt 0) { [void][W]::ShowWindow($p.MainWindowHandle, 1); [void][W]::MoveWindow($p.MainWindowHandle, 20, 20, $w, $h, $true) }
+  else { [void][W]::ShowWindow($p.MainWindowHandle, 3) }
+  Start-Sleep -Milliseconds 500
   [void][W]::SetForegroundWindow($p.MainWindowHandle)
   return $p
 }
@@ -93,16 +97,18 @@ $srv | Stop-Process -Force -ErrorAction SilentlyContinue
 
 # ---------- 2. the real Slope Calculator ----------
 Summary '### Slope Calculator''s web app'
-$p = Open '--preview=slope'
+# a short window, so its sign-in page (the preview isn't signed in) is taller than the window
+$p = Open '--preview=slope' 1000 520
 Start-Sleep -Seconds 25 # the web app loads from exceltokml.com
-$xy = At $p 0.6 0.65
-# the page area: right of the sidebar, under the app bar
-$tl = At $p 0.15 0.2; $br = At $p 0.97 0.95
+# the wheel over the lower part of the page; the top part (the app's logo and name), away from
+# the mouse, shows whether the page moved: a field lighting up under the mouse doesn't count
+$xy = At $p 0.6 0.8
+$tl = At $p 0.15 0.18; $br = At $p 0.97 0.5
 $before = Grab; Shot 'slope-before' $before
 Wheel $xy[0] $xy[1] 5
 $after = Grab; Shot 'slope-after' $after
 $share = Changed $before $after $tl[0] $tl[1] $br[0] $br[1]
-Result ($share -gt 0.05) "the Slope Calculator's page moves when the wheel is turned over it ($([math]::Round($share * 100, 1)) % of the page changed)"
+Result ($share -gt 0.03) "the Slope Calculator's page moves when the wheel is turned over it ($([math]::Round($share * 100, 1)) % of its top part changed)"
 Get-Process SurveyToolkit -ErrorAction SilentlyContinue | Stop-Process -Force
 
 Summary "`n``````"

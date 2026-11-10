@@ -221,6 +221,9 @@ class Webview {
       devtools_protocol_event_receiver_;
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
+  // Survey Toolkit: the pointer in the page's units (Flutter's logical pixels), for the wheel
+  double last_cursor_x_ = 0.0;
+  double last_cursor_y_ = 0.0;
   VirtualKeyState virtual_keys_;
   WebviewPopupWindowPolicy popup_window_policy_ =
       WebviewPopupWindowPolicy::Allow;
