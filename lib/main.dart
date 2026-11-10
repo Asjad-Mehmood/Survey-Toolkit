@@ -34,6 +34,12 @@ Future<void> main(List<String> args) async {
   // the Windows test: one web app inside the Toolkit's window, for a screenshot
   final preview = argValue(args, 'preview');
   if (preview != null) return runApp(WorkspacePreview(appId: preview));
+  // the Windows tests (scrolling): a page on this PC (http://localhost only) in the same window
+  final previewUrl = argValue(args, 'preview-url');
+  final testPage = previewUrl == null ? null : Uri.tryParse(previewUrl);
+  if (testPage != null && testPage.scheme == 'http' && (testPage.host == 'localhost' || testPage.host == '127.0.0.1')) {
+    return runApp(WorkspacePreview(appId: 'excel-to-kml', url: testPage.toString()));
+  }
   final store = await Store.open();
   final account = Account(Api(base: apiBase, client: http.Client()), store);
   final detector = WindowsDetector(places: places, folderManagerFolder: () => store.read(ToolkitModel.folderKey));

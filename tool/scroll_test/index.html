@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Scroll test</title>
+<!-- Laid out like the Flutter web apps (Slope Calculator): the page itself doesn't scroll; a panel
+     under a fixed header does. A wheel turned anywhere but over the panel scrolls nothing. -->
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; font: 16px Arial, sans-serif; }
+header { position: fixed; top: 0; left: 0; right: 0; height: 120px; background: #0b1f44; color: #fff; padding: 16px; box-sizing: border-box; }
+#panel { position: absolute; top: 120px; left: 0; right: 0; bottom: 0; overflow: auto; }
+.row { height: 60px; border-bottom: 1px solid #ccc; padding: 8px 16px; box-sizing: border-box; }
+</style></head>
+<body>
+<header>Header (doesn't scroll)</header>
+<div id="panel"></div>
+<script>
+var panel = document.getElementById('panel');
+for (var i = 1; i <= 100; i++) { var d = document.createElement('div'); d.className = 'row'; d.textContent = 'Row ' + i; panel.appendChild(d); }
+function log(m) { try { fetch('/log?m=' + encodeURIComponent(m)); } catch (e) {} }
+addEventListener('load', function () { log('loaded; page ' + innerWidth + 'x' + innerHeight); });
+// where each wheel turn arrives, and what it is over
+document.addEventListener('wheel', function (e) {
+  log('wheel at ' + e.clientX + ',' + e.clientY + ' over ' + (e.target.id || e.target.tagName) + ' deltaY ' + e.deltaY);
+}, { capture: true, passive: true });
+// where the pointer moves (the first move, then at most one line a second)
+var lastMove = 0;
+document.addEventListener('mousemove', function (e) {
+  var now = Date.now(); if (now - lastMove < 1000) return; lastMove = now;
+  log('mousemove at ' + e.clientX + ',' + e.clientY + ' over ' + (e.target.id || e.target.tagName));
+}, true);
+window.addEventListener('wheel', function (e) { log('window wheel at ' + e.clientX + ',' + e.clientY); }, { passive: true });
+var t; panel.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(function () { log('panel scrolled to ' + Math.round(panel.scrollTop)); }, 200); });
+</script>
+</body></html>
