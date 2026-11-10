@@ -590,18 +590,18 @@ void Webview::SendScroll(double delta, bool horizontal) {
 
   auto offset = static_cast<short>(delta * kScrollMultiplier);
 
-  POINT point;
-  point.x = 0;
-  point.y = 0;
-
+  // Survey Toolkit: the wheel turns where the pointer is. The package sent it to the page's
+  // top-left corner (0, 0), so only a page that scrolls as a whole moved; in a page whose
+  // scrolling part is lower down (the Flutter web apps, such as Slope Calculator) it reached
+  // the header and nothing scrolled (see README.toolkit.md).
   if (horizontal) {
     composition_controller_->SendMouseInput(
         COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL, virtual_keys_.state(),
-        offset, point);
+        offset, last_cursor_pos_);
   } else {
     composition_controller_->SendMouseInput(COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
                                             virtual_keys_.state(), offset,
-                                            point);
+                                            last_cursor_pos_);
   }
 }
 

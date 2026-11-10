@@ -710,11 +710,16 @@ class _WebviewState extends State<Webview> {
                     },
                     onPointerSignal: (signal) {
                       if (signal is PointerScrollEvent) {
+                        // Survey Toolkit: the wheel turns where the pointer is (a pen
+                        // or touch pad may not have hovered there first)
+                        _controller._setCursorPos(signal.localPosition);
                         _controller._setScrollDelta(
                             -signal.scrollDelta.dx, -signal.scrollDelta.dy);
                       }
                     },
                     onPointerPanZoomUpdate: (signal) {
+                      // Survey Toolkit: and a two-finger scroll on a touch pad too
+                      _controller._setCursorPos(signal.localPosition);
                       _controller._setScrollDelta(
                           signal.panDelta.dx, signal.panDelta.dy);
                     },
