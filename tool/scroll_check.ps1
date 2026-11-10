@@ -76,12 +76,16 @@ $loaded = WaitLine '^loaded' 60
 Start-Sleep -Seconds 2
 Result ($null -ne $loaded) "the test page loads in the Toolkit window ($loaded)"
 if ($loaded) {
-  $xy = At $p 0.6 0.65
   $before = Grab; Shot 'page-before' $before
-  Wheel $xy[0] $xy[1] 3
+  # over the middle of the panel, over its top, and over the header
+  foreach ($spot in @(@(0.6, 0.65, 'the middle of the panel'), @(0.5, 0.33, 'the top of the panel'), @(0.5, 0.18, 'the header'))) {
+    $xy = At $p $spot[0] $spot[1]
+    $from = (Lines).Count
+    Wheel $xy[0] $xy[1] 3
+    $got = (Lines) | Select-Object -Skip $from
+    Summary "- wheel over $($spot[2]) (screen $($xy[0]),$($xy[1])): $(if ($got) { $got -join ' | ' } else { 'nothing reached the page' })"
+  }
   $after = Grab; Shot 'page-after' $after
-  $wheel = Lines | Where-Object { $_ -match '^wheel at' } | Select-Object -First 1
-  Summary "- the wheel was turned at screen $($xy[0]),$($xy[1]); the page got: $(if ($wheel) { $wheel } else { 'no wheel event' })"
   $scrolled = WaitLine '^panel scrolled to [1-9]' 5
   Result ($null -ne $scrolled) "the panel under the mouse scrolls$(if ($scrolled) { " ($scrolled)" })"
 }
