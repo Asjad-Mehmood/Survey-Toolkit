@@ -58,6 +58,21 @@ jobs:
             Copy-Item "C:\Windows\System32\$dll" build\windows\x64\runner\Release\
           }
 
+      # the mouse wheel in the real window: a page laid out like the Flutter web apps, and Slope
+      # Calculator's web app; the results are on the run's summary page
+      - name: Scrolling in the real Toolkit window
+        shell: pwsh
+        run: pwsh tool/scroll_check.ps1
+
+      - name: Keep the scrolling screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrolling-screenshots
+          path: shots-scroll/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Build the installer
         shell: pwsh
         working-directory: installer
