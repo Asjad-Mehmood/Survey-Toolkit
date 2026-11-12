@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'account/account.dart';
 import 'brand.dart';
+import 'roadpro/roadpro_pc.dart';
 import 'screens/beta_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'toolkit/toolkit_model.dart';
@@ -27,6 +28,7 @@ class ToolkitApp extends StatelessWidget {
     this.checkUpdates = true,
     this.views = webView2Factory,
     this.native = folderManagerView,
+    this.roadproPc,
     this.background,
   });
   final Account account;
@@ -41,6 +43,9 @@ class ToolkitApp extends StatelessWidget {
 
   /// How the workspace shows Project Folder Manager (the program; a stand-in in tests)
   final NativeViewFactory native;
+
+  /// AutoCAD and RoadPro Hub on this PC, for the RoadPro page (Windows' unless given)
+  final RoadProPc? roadproPc;
 
   /// Looks for a new Toolkit a few seconds after opening (off in tests)
   final bool checkUpdates;
@@ -61,6 +66,7 @@ class ToolkitApp extends StatelessWidget {
         checkUpdates: checkUpdates,
         views: views,
         native: native,
+        roadproPc: roadproPc,
         background: background ?? Background(tray: NoTray(), startup: _NoStartup()),
       ),
     ),
@@ -75,6 +81,7 @@ class _Gate extends StatefulWidget {
     required this.checkUpdates,
     required this.views,
     required this.native,
+    required this.roadproPc,
     required this.background,
   });
   final Account account;
@@ -83,6 +90,7 @@ class _Gate extends StatefulWidget {
   final bool checkUpdates;
   final AppViewFactory views;
   final NativeViewFactory native;
+  final RoadProPc? roadproPc;
   final Background background;
 
   @override
@@ -162,6 +170,7 @@ class _GateState extends State<_Gate> {
       settings: widget.settings,
       views: widget.views,
       native: widget.native,
+      roadproPc: widget.roadproPc,
       auto: _auto,
     );
   }

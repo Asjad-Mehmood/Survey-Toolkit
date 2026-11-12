@@ -129,6 +129,18 @@ void main() {
       },
     );
 
+    // RoadPro's page: start AutoCAD, the commands, help
+    await shot(
+      t,
+      '11-roadpro',
+      Harness(site: FakeSite(), store: signedInStore()),
+      desktop,
+      before: () async {
+        await t.tap(find.byKey(const ValueKey('workspace RoadPro')));
+        await settle(t);
+      },
+    );
+
     // T5: the Updates section, with Start with Windows on and Excel to KML waiting to be opened
     final bg = Harness(site: FakeSite(), store: signedInStore())..startup.on = true;
     await shot(
