@@ -1,8 +1,8 @@
 // The workspace: like the Microsoft 365 app, one window with a sidebar. Home is the Tools page;
 // Excel to KML, Traverse & Level and Slope Calculator open inside the window, signed in already
-// (the website's single-use sign-in handover), and Project Folder Manager runs inside it as part of
-// the Toolkit. Each stays open in the background when you switch, like tabs. Like Google's apps,
-// the grid button in the header jumps to any of them too. Ctrl+1 is Home, Ctrl+2 to Ctrl+5 the apps.
+// (the website's single-use sign-in handover), Project Folder Manager runs inside it as part of
+// the Toolkit, and RoadPro has its own page (lib/src/roadpro: it runs inside AutoCAD). Each stays open in the background when you switch, like tabs. Like Google's apps,
+// the grid button in the header jumps to any of them too. Ctrl+1 is Home, Ctrl+2 to Ctrl+6 the apps.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,6 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account/account.dart';
 import '../brand.dart';
+import '../roadpro/roadpro_panel.dart';
+import '../roadpro/roadpro_pc.dart';
 import '../screens/tools_screen.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
@@ -31,6 +33,7 @@ class WorkspaceShell extends StatefulWidget {
     required this.settings,
     required this.views,
     this.native = folderManagerView,
+    this.roadproPc,
     this.auto,
   });
   final Account account;
@@ -38,6 +41,9 @@ class WorkspaceShell extends StatefulWidget {
   final AppSettings settings;
   final AppViewFactory views;
   final NativeViewFactory native;
+
+  /// AutoCAD and RoadPro Hub on this PC, for the RoadPro page (Windows' unless given)
+  final RoadProPc? roadproPc;
 
   /// The automatic updates, for the Tools page's Updates section
   final AutoUpdater? auto;
@@ -89,7 +95,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     if (page > 0) {
       final app = workspaceApps[page - 1];
       if (app.native) {
-        _nativeOpen.putIfAbsent(app.id, () => widget.native(app));
+        _nativeOpen.putIfAbsent(
+          app.id,
+          () => app.id == 'roadpro'
+              ? RoadProPanel(model: widget.model, pc: widget.roadproPc ?? WindowsRoadProPc())
+              : widget.native(app),
+        );
       } else {
         _open.putIfAbsent(app.id, () => widget.views(app, () => _startOf(app)));
       }

@@ -273,12 +273,11 @@ void main() {
       return h;
     }
 
-    testWidgets('a sidebar with Home, the three web apps and Project Folder Manager; RoadPro stays on Home', (t) async {
+    testWidgets('a sidebar with Home, the three web apps, Project Folder Manager and RoadPro', (t) async {
       await open(t);
-      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Folders']) {
+      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Folders', 'RoadPro']) {
         expect(find.byKey(ValueKey('workspace $label')), findsOneWidget, reason: label);
       }
-      expect(find.byKey(const ValueKey('workspace RoadPro')), findsNothing);
       expect(find.text('1 update available'), findsOneWidget, reason: 'Home is the Tools page');
     });
 

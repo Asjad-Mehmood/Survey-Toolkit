@@ -11,6 +11,7 @@ import 'package:http/testing.dart';
 import 'package:survey_toolkit/src/account/account.dart';
 import 'package:survey_toolkit/src/account/api.dart';
 import 'package:survey_toolkit/src/app.dart';
+import 'package:survey_toolkit/src/roadpro/roadpro_pc.dart';
 import 'package:survey_toolkit/src/state/store.dart';
 import 'package:survey_toolkit/src/toolkit/detect.dart';
 import 'package:survey_toolkit/src/toolkit/feed.dart';
@@ -30,6 +31,7 @@ class FakeSite {
   final handoffs = <String>[];
   bool handoffWorks = true;
   String feed = File('test/fixtures/feed.json').readAsStringSync();
+  bool roadproInfo = true;
 
   late final client = MockClient((req) async {
     if (!online) throw http.ClientException('offline');
@@ -53,6 +55,26 @@ class FakeSite {
           'admin': false,
           if (!tester) 'message': 'The Survey Toolkit isn\'t open to this account just now. Please try again later.',
         });
+      case '/api/toolkit/roadpro':
+        if (!roadproInfo) return json({'error': 'down'}, 503);
+        return json({
+          'schema': 1,
+          'version': '3.6.1',
+          'commands': [
+            {'short': 'RDP', 'full': 'ROADPRO', 'text': 'Build a complete road from a centre line (the main command)'},
+            {'short': 'RDJ', 'full': 'ROADJUNCTION', 'text': 'Junction / tie-in: join a new road'},
+            {'short': 'RDT', 'full': 'ROADTAPER', 'text': 'Road taper: wider or narrower between two chainages'},
+            {'short': 'bad cmd', 'full': 'X', 'text': 'left out: not a command name'},
+          ],
+          'keys': [
+            {'key': 'U', 'text': 'Undo the whole road in one step'},
+          ],
+          'links': {
+            'page': 'https://www.exceltokml.com/roadpro',
+            'guide': 'https://www.exceltokml.com/roadpro/RoadPro_User_Guide.pdf',
+            'shortcuts': 'http://evil.example/x.xlsx',
+          },
+        });
       case '/api/toolkit/feed':
         return http.Response(feed, 200, headers: {'content-type': 'application/json'});
       case '/api/toolkit/handoff':
@@ -71,6 +93,36 @@ class FakeSite {
   });
 
   static const user = {'id': 'u1', 'email': 'tester@example.com', 'name': 'Test Surveyor'};
+}
+
+/// AutoCAD and RoadPro Hub on a pretend PC; records what was started
+class FakeRoadProPc implements RoadProPc {
+  FakeRoadProPc({List<AutocadProduct>? autocads, this.hubExe, this.starts = true})
+    : list =
+          autocads ??
+          const [
+            AutocadProduct(
+              name: 'Autodesk Civil 3D 2024',
+              release: 'R24.3',
+              year: 2024,
+              folder: r'C:\Program Files\Autodesk\AutoCAD 2024',
+            ),
+            AutocadProduct(name: 'AutoCAD 2012', release: 'R18.2', year: 2012, folder: r'C:\ACAD2012'),
+          ];
+  final List<AutocadProduct> list;
+  final String? hubExe;
+  final bool starts;
+  final started = <String>[];
+
+  @override
+  Future<List<AutocadProduct>> autocads() async => list;
+  @override
+  Future<String?> hub() async => hubExe;
+  @override
+  Future<bool> start(String exe, [List<String> args = const []]) async {
+    started.add(exe);
+    return starts;
+  }
 }
 
 class FakeDetector implements Detector {
@@ -193,6 +245,7 @@ class Harness {
   late final Account account;
   late final ToolkitModel model;
   late final AppSettings settings;
+  final roadproPc = FakeRoadProPc(hubExe: r'C:\Users\me\AppData\Local\Programs\RoadPro Hub\RoadProHub.exe');
   final tray = FakeTray();
   final startup = FakeStartup();
   late final Background background;
@@ -205,6 +258,7 @@ class Harness {
     checkUpdates: false,
     views: _view,
     native: _native,
+    roadproPc: roadproPc,
     background: background,
   );
 }
