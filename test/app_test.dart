@@ -115,7 +115,7 @@ void main() {
     expect(find.text('Get the update'), findsOneWidget);
     expect(find.text('Get it'), findsNWidgets(3));
     expect(find.text('Uninstall'), findsNothing);
-    expect(find.textContaining('look only'), findsOneWidget);
+    expect(find.textContaining('Look only'), findsOneWidget);
   });
 
   testWidgets('Update: the progress on the card, then the result; the website is told', (t) async {

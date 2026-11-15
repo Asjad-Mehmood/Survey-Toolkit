@@ -63,8 +63,6 @@ class ToolsScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
-            // beside the name when there is room for both
-            if (MediaQuery.sizeOf(context).width >= 520) ...[const SizedBox(width: 10), const Tag('Beta')],
           ],
         ),
         actions: [
@@ -112,9 +110,9 @@ class ToolsScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     Notice(
                       model.installer == null
-                          ? 'Beta, look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
+                          ? 'Look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
                                 'the tool\'s page in your browser.'
-                          : 'Beta: each tool is installed with its own official installer, checked by its SHA-256 '
+                          : 'Each tool is installed with its own official installer, checked by its SHA-256 '
                                 'first. A tool that is open is never updated: it is updated once it is closed.',
                     ),
                     if (model.problem != null) ...[
