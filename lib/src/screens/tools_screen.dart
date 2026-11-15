@@ -265,6 +265,7 @@ IconData _iconOf(String id) => switch (id) {
   'traverse' => Icons.explore_outlined,
   'folder-manager' => Icons.folder_copy_outlined,
   'slope' => Icons.trending_up_rounded,
+  'auto-draft' => Icons.architecture_rounded,
   _ => Icons.extension_outlined,
 };
 
