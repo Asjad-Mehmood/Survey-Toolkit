@@ -102,7 +102,7 @@ Shot 'installed' 'the desktop after installing, with the Toolkit''s shortcut' -P
 Step '2. A PC with none of the tools'
 # 2. a PC with none of the tools
 $none = Detect 'none'
-foreach ($id in 'excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope') {
+foreach ($id in 'excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope', 'auto-draft') {
   Check ($null -eq $none.tools.$id.version) "finds no $id on a clean PC"
 }
 
@@ -116,7 +116,8 @@ $programs = @(
   @{ id = 'excel-to-kml'; name = 'Excel to KML'; repo = 'Asjad-Mehmood/kml-convertor'; file = 'ExcelToKML-Setup.exe'; key = 'ExcelToKMLPro'; exe = @('ExcelToKML.exe', 'ExcelToKMLPro.exe'); opens = $true },
   @{ id = 'traverse'; name = 'Traverse & Level'; repo = 'Asjad-Mehmood/Traiverse'; file = 'TraverseLevel-Setup.exe'; key = 'TraversePro'; exe = @('TraverseLevel.exe', 'TraversePro.exe'); opens = $true },
   @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe'); opens = $false },
-  @{ id = 'folder-manager'; name = 'Project Folder Manager'; repo = 'Asjad-Mehmood/Project-manager'; file = 'ProjectFolderManager-Setup.exe'; key = 'ProjectFolderManager'; exe = @('ProjectFolderManager.exe'); opens = $false }
+  @{ id = 'folder-manager'; name = 'Project Folder Manager'; repo = 'Asjad-Mehmood/Project-manager'; file = 'ProjectFolderManager-Setup.exe'; key = 'ProjectFolderManager'; exe = @('ProjectFolderManager.exe'); opens = $false },
+  @{ id = 'auto-draft'; name = 'Auto Draft'; repo = 'Asjad-Mehmood/auto-draft-app'; file = 'AutoDraft-Setup.exe'; key = 'AutoDraft'; exe = @('AutoDraft.exe'); opens = $false }
 )
 foreach ($p in $programs) {
   $rel = Invoke-RestMethod -Headers $api -Uri "https://api.github.com/repos/$($p.repo)/releases/latest"
@@ -169,11 +170,11 @@ function Toolkit([string] $verb, [string] $id, [string] $feedFile = $feed) {
   Write-Host "  [$verb $id] exit $code : $($r.message)"
   return $r
 }
-function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator', 'ProjectFolderManager') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
+function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator', 'ProjectFolderManager', 'AutoDraft') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
 
 Step '4. The Toolkit installs every tool'
 # 4. the Toolkit installs every tool, from nothing
-foreach ($id in 'excel-to-kml', 'traverse', 'roadpro') {
+foreach ($id in 'excel-to-kml', 'traverse', 'roadpro', 'auto-draft') {
   $r = Toolkit 'install' $id
   Check ($r.ok -and $r.version -eq $want[$id]) "the Toolkit installs $id $($want[$id])"
   if ($id -in 'excel-to-kml', 'traverse') {

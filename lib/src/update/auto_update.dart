@@ -7,6 +7,8 @@
 //   - A tool that is open is never updated: it is tried again after 30 minutes.
 //   - A failed update is tried again at the next check; after 3 failures at the same version the
 //     Toolkit stops trying, says so once, and leaves it to the Update button.
+//   - An installer Windows blocked (Smart App Control, an organisation's app policy) isn't tried
+//     again by itself at that version, even after a restart: only the Update button tries it.
 //   - When the user is installing something themselves, the automatic updates wait for the next
 //     check.
 import 'dart:async';
@@ -99,7 +101,8 @@ class AutoUpdater extends ChangeNotifier {
         installed: model.installedOf,
         modeOf: model.updates.modeOf,
         autocad: model.hasAutocad,
-        gaveUp: gaveUp,
+        // and what Windows blocked on this PC: trying again changes nothing
+        gaveUp: {...model.windowsBlocked, ...gaveUp},
       );
       for (final t in plan.now) {
         // the user started something: the rest waits for the next check

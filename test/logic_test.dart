@@ -35,9 +35,16 @@ void main() {
   });
 
   group('feed', () {
-    test('reads the website feed: five tools with versions, downloads and how to find them', () {
+    test('reads the website feed: six tools with versions, downloads and how to find them', () {
       final f = Feed.from(fixtureFeed())!;
-      expect(f.tools.map((t) => t.id), ['excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope']);
+      expect(f.tools.map((t) => t.id), [
+        'excel-to-kml',
+        'roadpro',
+        'traverse',
+        'folder-manager',
+        'slope',
+        'auto-draft',
+      ]);
       final excel = f.tools.first;
       expect(excel.version, '4.4.0');
       expect(excel.download!.sha256, hasLength(64));
@@ -48,7 +55,8 @@ void main() {
       expect(pfm.install.kind, 'installer');
       expect(pfm.install.registryKey, 'ProjectFolderManager');
       expect(pfm.version, '7.0.0');
-      expect(f.tools.last.problems.single, contains('latest.json'));
+      expect(f.tools[4].problems.single, contains('latest.json'));
+      expect(f.tools.last.install.registryKey, 'AutoDraft');
     });
 
     test('a download from anywhere but the website or GitHub, or without HTTPS, is dropped', () {
@@ -112,7 +120,7 @@ void main() {
       expect(Feed.from(j)!.tools[0].version, isNull);
     });
 
-    test('the built-in list knows all five tools, matching the feed', () {
+    test('the built-in list knows all six tools, matching the feed', () {
       final f = Feed.from(fixtureFeed())!;
       expect(builtInTools.map((t) => t.id), f.tools.map((t) => t.id));
       for (var i = 0; i < builtInTools.length; i++) {

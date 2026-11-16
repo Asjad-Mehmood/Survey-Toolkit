@@ -480,6 +480,36 @@ void main() {
       expect(r.message, contains('stopped (code 2)'));
     });
 
+    test('Windows blocks the installer (Smart App Control): said plainly, marked as Windows', () async {
+      pc.onRun = (exe, args) =>
+          throw ProcessException(exe, args, 'An Application Control policy has blocked this file.', 4551);
+      final r = await pc.installer().install(slope());
+      expect(r.ok, isFalse);
+      expect(r.byWindows, isTrue);
+      expect(r.message, startsWith('Windows blocked the Slope Calculator installer.'));
+      expect(r.message, contains('Smart App Control'));
+      expect(r.message, isNot(contains('ProcessException')));
+    });
+
+    test('which errors are Windows blocking a program', () {
+      expect(
+        blockedByWindows(
+          const ProcessException('a.exe', [], 'An Application Control policy has blocked this file.', 0),
+        ),
+        isTrue,
+      );
+      expect(blockedByWindows(const ProcessException('a.exe', [], 'x', 4551)), isTrue);
+      expect(
+        blockedByWindows(const ProcessException('a.exe', [], 'This program is blocked by group policy.', 1260)),
+        isTrue,
+      );
+      expect(
+        blockedByWindows(const ProcessException('a.exe', [], 'The system cannot find the file specified.', 2)),
+        isFalse,
+      );
+      expect(blockedByWindows(Exception('Application Control policy')), isFalse);
+    });
+
     test('installed, but not the version expected', () async {
       pc.onRun = (exe, args) {
         pc.installSlope('1.0.1');

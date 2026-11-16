@@ -51,19 +51,44 @@ class JobProgress {
 }
 
 class JobResult {
-  const JobResult.done(this.message, {this.version}) : ok = true, blocked = false;
-  const JobResult.failed(this.message) : ok = false, blocked = false, version = null;
+  const JobResult.done(this.message, {this.version}) : ok = true, blocked = false, byWindows = false;
+  const JobResult.failed(this.message, {this.byWindows = false}) : ok = false, blocked = false, version = null;
 
   /// The tool is open: nothing was done, the user closes it and tries again
-  const JobResult.blocked(this.message) : ok = false, blocked = true, version = null;
+  const JobResult.blocked(this.message) : ok = false, blocked = true, byWindows = false, version = null;
 
   final bool ok;
   final bool blocked;
   final String message;
 
+  /// Windows itself refused to run the installer (Smart App Control or an organisation's app
+  /// policy): trying again changes nothing until the user or their IT allows it
+  final bool byWindows;
+
   /// The version found afterwards
   final String? version;
 }
+
+/// Windows refused to start a program because of an app policy: Smart App Control or Windows
+/// Defender Application Control (an organisation's policy) says "An Application Control policy
+/// has blocked this file" (error 4551); a group policy says "This program is blocked by group
+/// policy" (error 1260)
+bool blockedByWindows(Object e) {
+  if (e is! ProcessException) return false;
+  final m = e.message.toLowerCase();
+  return e.errorCode == 4551 ||
+      e.errorCode == 1260 ||
+      m.contains('application control policy') ||
+      m.contains('blocked by group policy') ||
+      m.contains('smart app control');
+}
+
+/// What the card says when Windows blocked an installer
+String windowsBlockedText(String name) =>
+    'Windows blocked the $name installer. Smart App Control (or your organisation\'s app policy) '
+    'stops programs that aren\'t code-signed yet, and $name isn\'t. On your own PC: Windows Security → '
+    'App & browser control → Smart App Control settings → Off. On a work PC, ask your IT to allow it. '
+    'The Toolkit won\'t try this version again by itself.';
 
 class _Refused implements Exception {
   _Refused(this.message);
@@ -162,6 +187,10 @@ class ToolInstaller {
     } on _Refused catch (e) {
       return _fail(t, e.message);
     } catch (e) {
+      if (blockedByWindows(e)) {
+        log('  blocked by Windows: $e');
+        return JobResult.failed(windowsBlockedText(t.name), byWindows: true);
+      }
       return _fail(t, '${t.name} could not be installed: $e');
     } finally {
       if (file != null && file.existsSync()) {

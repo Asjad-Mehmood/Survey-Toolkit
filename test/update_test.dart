@@ -218,6 +218,42 @@ void main() {
       expect(events().where((e) => e['action'] == 'failed').first['message'], 'automatic: The download was damaged.');
     });
 
+    test('Windows blocked the installer: never tried again by itself, even after a restart; Update tries it', () async {
+      await setUpPc({'slope': allBehind()['slope']!});
+      installer.next = JobResult.failed(windowsBlockedText('Slope Calculator'), byWindows: true);
+      await model.refresh();
+      for (var i = 0; i < 4; i++) {
+        await auto.updateDue();
+      }
+      expect(installer.calls, ['install slope']);
+      expect(model.windowsBlocked, {'slope': '1.0.3'});
+      expect(tray.notes, isEmpty);
+      expect(model.results['slope']!.message, startsWith('Windows blocked the Slope Calculator installer.'));
+      await Future<void>.delayed(Duration.zero);
+      expect(events().where((e) => e['action'] == 'failed'), hasLength(1));
+
+      // a new Toolkit on the same PC (restart) remembers it
+      final again = ToolkitModel(
+        account: model.account,
+        store: model.store,
+        detector: FakeDetector({'slope': allBehind()['slope']!}),
+        installer: installer,
+      );
+      await again.refresh();
+      final slope = again.tools.firstWhere((t) => t.id == 'slope');
+      expect(again.windowsBlocked, {'slope': '1.0.3'});
+      final skipped = await again.install(slope, automatic: true);
+      expect(skipped.byWindows, isTrue);
+      expect(installer.calls, ['install slope']);
+
+      // the user presses Update: it is tried, and once it works it is forgotten
+      installer.next = const JobResult.done('Slope Calculator is updated to 1.0.3.', version: '1.0.3');
+      final r = await again.install(slope);
+      expect(r.ok, isTrue);
+      expect(installer.calls, ['install slope', 'install slope']);
+      expect(again.windowsBlocked, isEmpty);
+    });
+
     test('waits while the user is installing something themselves', () async {
       await setUpPc(allBehind());
       installer

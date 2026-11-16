@@ -1,7 +1,7 @@
 // The tool list from exceltokml.com/api/toolkit/feed (the website's lib/toolkit/feed.ts): for each
 // tool its latest version, the download with its SHA-256, and how it is found on a PC.
 //
-// The five tools are also built in ([builtInTools]), with how to find each one but no version, so
+// The six tools are also built in ([builtInTools]), with how to find each one but no version, so
 // the Toolkit can show what is installed before it has ever reached the website, and so the
 // Windows test can check finding them without the website.
 import 'version.dart';
@@ -183,7 +183,7 @@ const folderManagerZip = InstallInfo(
   main: 'Project_Folder_Manager.exe',
 );
 
-/// The five tools as T0 found them (the Toolkit's docs/TOOLS.md): how to find each one, no versions
+/// The tools as T0 found them (the Toolkit's docs/TOOLS.md) and Auto Draft: how to find each one, no versions
 const builtInTools = [
   FeedTool(
     id: 'excel-to-kml',
@@ -237,5 +237,13 @@ const builtInTools = [
     page: 'https://www.exceltokml.com/slope-calculation',
     webApp: 'https://www.exceltokml.com/slope-calculation/app',
     install: InstallInfo(kind: 'installer', registryKey: 'SlopeCalculator', exe: ['SlopeCalculator.exe']),
+  ),
+  // github.com/Asjad-Mehmood/auto-draft-app; a silent install (/S) doesn't open it
+  FeedTool(
+    id: 'auto-draft',
+    name: 'Auto Draft',
+    platform: 'Windows',
+    page: 'https://www.exceltokml.com/auto-draft',
+    install: InstallInfo(kind: 'installer', registryKey: 'AutoDraft', exe: ['AutoDraft.exe']),
   ),
 ];
