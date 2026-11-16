@@ -72,15 +72,15 @@ void main() {
     await settle(t);
 
     expect(find.text('1 update available'), findsOneWidget);
-    expect(find.textContaining('2 of 5 installed'), findsOneWidget);
+    expect(find.textContaining('2 of 6 installed'), findsOneWidget);
     expect(find.text('Installed 4.3.1 → latest 4.4.0'), findsOneWidget);
     expect(find.text('UPDATE AVAILABLE'), findsOneWidget);
     expect(find.text('Installed 1.0.3, the latest'), findsOneWidget);
     expect(find.text('UP TO DATE'), findsOneWidget);
     expect(find.text('NEEDS AUTOCAD'), findsOneWidget);
-    expect(find.text('NOT INSTALLED'), findsNWidgets(2));
+    expect(find.text('NOT INSTALLED'), findsNWidgets(3));
     expect(find.text('Update'), findsOneWidget);
-    expect(find.text('Install'), findsNWidgets(3));
+    expect(find.text('Install'), findsNWidgets(4));
     expect(find.text('Uninstall'), findsNWidgets(2));
     expect(find.text('Open'), findsNWidgets(2));
     expect(find.text('Web app'), findsNWidgets(2));
@@ -100,6 +100,7 @@ void main() {
       'traverse': '',
       'folder-manager': '',
       'slope': '1.0.3',
+      'auto-draft': '',
     });
     // the same id next time
     expect(h.model.deviceId, device['id']);
@@ -113,7 +114,7 @@ void main() {
     await t.pumpWidget(h.app);
     await settle(t);
     expect(find.text('Get the update'), findsOneWidget);
-    expect(find.text('Get it'), findsNWidgets(3));
+    expect(find.text('Get it'), findsNWidgets(4));
     expect(find.text('Uninstall'), findsNothing);
     expect(find.textContaining('look only'), findsOneWidget);
   });

@@ -102,7 +102,7 @@ Shot 'installed' 'the desktop after installing, with the Toolkit''s shortcut' -P
 Step '2. A PC with none of the tools'
 # 2. a PC with none of the tools
 $none = Detect 'none'
-foreach ($id in 'excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope') {
+foreach ($id in 'excel-to-kml', 'roadpro', 'traverse', 'folder-manager', 'slope', 'auto-draft') {
   Check ($null -eq $none.tools.$id.version) "finds no $id on a clean PC"
 }
 
@@ -116,7 +116,8 @@ $programs = @(
   @{ id = 'excel-to-kml'; name = 'Excel to KML'; repo = 'Asjad-Mehmood/kml-convertor'; file = 'ExcelToKML-Setup.exe'; key = 'ExcelToKMLPro'; exe = @('ExcelToKML.exe', 'ExcelToKMLPro.exe'); opens = $true },
   @{ id = 'traverse'; name = 'Traverse & Level'; repo = 'Asjad-Mehmood/Traiverse'; file = 'TraverseLevel-Setup.exe'; key = 'TraversePro'; exe = @('TraverseLevel.exe', 'TraversePro.exe'); opens = $true },
   @{ id = 'slope'; name = 'Slope Calculator'; repo = 'Asjad-Mehmood/Slope-calculator-'; file = 'SlopeCalculator-Setup.exe'; key = 'SlopeCalculator'; exe = @('SlopeCalculator.exe'); opens = $false },
-  @{ id = 'folder-manager'; name = 'Project Folder Manager'; repo = 'Asjad-Mehmood/Project-manager'; file = 'ProjectFolderManager-Setup.exe'; key = 'ProjectFolderManager'; exe = @('ProjectFolderManager.exe'); opens = $false }
+  @{ id = 'folder-manager'; name = 'Project Folder Manager'; repo = 'Asjad-Mehmood/Project-manager'; file = 'ProjectFolderManager-Setup.exe'; key = 'ProjectFolderManager'; exe = @('ProjectFolderManager.exe'); opens = $false },
+  @{ id = 'auto-draft'; name = 'Auto Draft'; repo = 'Asjad-Mehmood/auto-draft-app'; file = 'AutoDraft-Setup.exe'; key = 'AutoDraft'; exe = @('AutoDraft.exe'); opens = $false }
 )
 foreach ($p in $programs) {
   $rel = Invoke-RestMethod -Headers $api -Uri "https://api.github.com/repos/$($p.repo)/releases/latest"

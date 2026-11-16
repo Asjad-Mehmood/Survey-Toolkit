@@ -44,6 +44,7 @@ class ToolkitModel extends ChangeNotifier {
   static const _feedKey = 'feed';
   static const _checkedKey = 'checked';
   static const _deviceKey = 'device';
+  static const _windowsBlockedKey = 'windows-blocked';
 
   /// Where the folder of a Project Folder Manager the user unzipped themselves is kept
   static const folderKey = 'folder-manager-folder';
@@ -164,9 +165,30 @@ class ToolkitModel extends ChangeNotifier {
     }
   }
 
+  /// tool id → the version whose installer Windows blocked on this PC (kept across restarts).
+  /// Nothing tries that version again by itself; pressing Install or Update does, once.
+  Map<String, String> get windowsBlocked => {
+    for (final e in (store.readJson(_windowsBlockedKey) ?? const <String, Object?>{}).entries)
+      if (e.value is String) e.key: e.value! as String,
+  };
+
+  bool _blockedNow(FeedTool t) => t.version != null && windowsBlocked[t.id] == t.version;
+
+  void _noteWindowsBlocked(FeedTool t, JobResult r) {
+    final m = windowsBlocked;
+    if (r.byWindows && t.version != null) {
+      m[t.id] = t.version!;
+    } else if (r.ok) {
+      m.remove(t.id);
+    } else {
+      return;
+    }
+    store.writeJson(_windowsBlockedKey, m);
+  }
+
   /// Opening it from the Toolkit updates it first (Automatic, and its installer opens it anyway)
   bool updatesOnOpen(FeedTool t) =>
-      installer != null && !jobRunning && updatesWhenOpened(t, stateOfTool(t), updates.modeOf(t.id));
+      installer != null && !jobRunning && !_blockedNow(t) && updatesWhenOpened(t, stateOfTool(t), updates.modeOf(t.id));
 
   /// Opens an installed program; one that [updatesOnOpen] is updated first, and its installer
   /// opens the new version
@@ -231,9 +253,11 @@ class ToolkitModel extends ChangeNotifier {
 
   /// Installs or updates [t]; [automatic] when nobody pressed Update (T5)
   Future<JobResult> install(FeedTool t, {bool automatic = false}) async {
+    // Windows blocked this version's installer before: only the user tries it again
+    if (automatic && _blockedNow(t)) return JobResult.failed(windowsBlockedText(t.name), byWindows: true);
     final before = _installed[t.id];
     final from = before != null && before.found ? before.version : null;
-    return _job(
+    final r = await _job(
       t,
       (inst) => inst.install(t, current: before != null && before.found ? before : null, onProgress: _progress),
       (r) => {
@@ -246,6 +270,8 @@ class ToolkitModel extends ChangeNotifier {
       // an automatic update that found the tool open says nothing on the card: it tries again later
       showBlocked: !automatic,
     );
+    _noteWindowsBlocked(t, r);
+    return r;
   }
 
   Future<JobResult> uninstall(FeedTool t) async {
