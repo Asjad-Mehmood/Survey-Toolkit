@@ -27,7 +27,8 @@ jobs:
       - name: Read version from tag
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}".TrimStart('v')
+          # v1.0.9 or V1.0.9: both work
+          $ver = "${{ github.ref_name }}".TrimStart('v', 'V')
           if ($ver -notmatch '^[01]\.\d+\.\d+$') { throw "A release tag is v1 (or v0 for a beta) and two numbers, for example v1.1.0. Got: ${{ github.ref_name }}" }
           "VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -69,7 +70,7 @@ jobs:
         id: notes
         shell: bash
         run: |
-          f="docs/releases/${GITHUB_REF_NAME}.md"
+          f="docs/releases/v${GITHUB_REF_NAME#[vV]}.md"
           if [ -f "$f" ]; then echo "path=$f" >> "$GITHUB_OUTPUT"; else echo "path=" >> "$GITHUB_OUTPUT"; fi
 
       - name: Publish the release
@@ -94,7 +95,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
-          want="${GITHUB_REF_NAME#v}"
+          want="${GITHUB_REF_NAME#[vV]}"
           for i in 1 2 3 4 5 6; do
             if curl -fsSL "$base/latest.json" -o latest.json && grep -q "\"version\":\"$want\"" latest.json; then break; fi
             sleep 10
