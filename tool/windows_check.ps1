@@ -170,11 +170,11 @@ function Toolkit([string] $verb, [string] $id, [string] $feedFile = $feed) {
   Write-Host "  [$verb $id] exit $code : $($r.message)"
   return $r
 }
-function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator', 'ProjectFolderManager') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
+function StopTools { foreach ($n in 'ExcelToKML', 'TraverseLevel', 'SlopeCalculator', 'ProjectFolderManager', 'AutoDraft') { Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } }
 
 Step '4. The Toolkit installs every tool'
 # 4. the Toolkit installs every tool, from nothing
-foreach ($id in 'excel-to-kml', 'traverse', 'roadpro') {
+foreach ($id in 'excel-to-kml', 'traverse', 'roadpro', 'auto-draft') {
   $r = Toolkit 'install' $id
   Check ($r.ok -and $r.version -eq $want[$id]) "the Toolkit installs $id $($want[$id])"
   if ($id -in 'excel-to-kml', 'traverse') {
