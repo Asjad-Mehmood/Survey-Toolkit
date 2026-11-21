@@ -47,10 +47,10 @@ class ToolkitColors extends ThemeExtension<ToolkitColors> {
   // Calm desktop surfaces, like Windows 11: grey page, white panels, thin lines. Navy is the one
   // action colour; gold only marks an update.
   static const light = ToolkitColors(
-    background: Color(0xFFF4F5F7),
+    background: Color(0xFFF6F7FB),
     card: Color(0xFFFFFFFF),
-    cardSoft: Color(0xFFF3F4F6),
-    line: Color(0xFFE3E5E9),
+    cardSoft: Color(0xFFEFF2F7),
+    line: Color(0xFFE4E7EE),
     ink: Color(0xFF1A1D23),
     muted: Color(0xFF5E6573),
     accent: Color(0xFFD9A62E),
@@ -99,8 +99,8 @@ Color actionColour(Brightness b) => b == Brightness.light ? BrandColors.navyLigh
 /// Sizes every screen uses: a desktop program for a mouse, not a phone
 abstract final class Sizes {
   static const control = 32.0;
-  static const radius = 6.0;
-  static const panelRadius = 8.0;
+  static const radius = 8.0;
+  static const panelRadius = 12.0;
   static const header = 48.0;
 }
 

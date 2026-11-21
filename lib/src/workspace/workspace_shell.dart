@@ -122,7 +122,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final c = context.colors;
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final pages = <Widget>[
-      ToolsScreen(model: widget.model, auto: widget.auto),
+      ToolsScreen(model: widget.model, auto: widget.auto, userName: widget.account.user?.display),
       for (final app in workspaceApps)
         if (app.native)
           _nativeOpen[app.id] == null ? const SizedBox.shrink() : _NativePanel(app: app, view: _nativeOpen[app.id]!)
@@ -178,23 +178,20 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      width: wide ? 228 : 56,
-      color: c.card,
+      width: wide ? 236 : 60,
+      color: c.cardSoft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             height: Sizes.header,
             padding: EdgeInsets.symmetric(horizontal: wide ? 16 : 0),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: c.line)),
-            ),
             child: Row(
               mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: Image.asset('assets/brand/icon-512.png', width: 22, height: 22, excludeFromSemantics: true),
+                  borderRadius: BorderRadius.circular(7),
+                  child: Image.asset('assets/brand/icon-512.png', width: 26, height: 26, excludeFromSemantics: true),
                 ),
                 if (wide) ...[
                   const SizedBox(width: 10),
@@ -202,7 +199,7 @@ class _Sidebar extends StatelessWidget {
                     child: Text(
                       appName,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: c.ink),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.ink, letterSpacing: -0.2),
                     ),
                   ),
                 ],
@@ -237,6 +234,7 @@ class _Sidebar extends StatelessWidget {
                     label: workspaceApps[i].short,
                     name: workspaceApps[i].name,
                     icon: workspaceApps[i].icon,
+                    appId: workspaceApps[i].id,
                     on: page == i + 1,
                     wide: wide,
                     shortcut: 'Ctrl+${i + 2}',
@@ -275,7 +273,11 @@ class _NavItem extends StatelessWidget {
     required this.wide,
     required this.shortcut,
     required this.onTap,
+    this.appId,
   });
+
+  /// An app's id: its icon is drawn in the app's own colours
+  final String? appId;
 
   /// The short name, also the test key ("workspace Slope")
   final String label;
@@ -298,44 +300,53 @@ class _NavItem extends StatelessWidget {
         selected: on,
         button: true,
         label: name,
-        child: Material(
-          color: on ? action.withValues(alpha: 0.10) : Colors.transparent,
-          borderRadius: BorderRadius.circular(Sizes.radius),
-          child: InkWell(
-            key: ValueKey('workspace $label'),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: on ? c.card : Colors.transparent,
             borderRadius: BorderRadius.circular(Sizes.radius),
-            onTap: onTap,
-            child: ExcludeSemantics(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 34),
-                child: Row(
-                  mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
-                  children: [
-                    // the bar on the left of the page that is showing, as in Windows 11
-                    if (wide)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        width: 3,
-                        height: on ? 16 : 0,
-                        margin: const EdgeInsets.only(right: 9),
-                        decoration: BoxDecoration(color: action, borderRadius: BorderRadius.circular(2)),
-                      ),
-                    Icon(icon, size: 18, color: on ? action : c.muted),
-                    if (wide) ...[
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: on ? FontWeight.w600 : FontWeight.w500,
-                            color: c.ink,
+            boxShadow: on ? softShadow(context) : null,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              key: ValueKey('workspace $label'),
+              borderRadius: BorderRadius.circular(Sizes.radius),
+              onTap: onTap,
+              child: ExcludeSemantics(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 36),
+                  child: Row(
+                    mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
+                    children: [
+                      // the bar on the left of the page that is showing, as in Windows 11
+                      if (wide)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          width: 3,
+                          height: on ? 16 : 0,
+                          margin: const EdgeInsets.only(right: 9),
+                          decoration: BoxDecoration(color: action, borderRadius: BorderRadius.circular(2)),
+                        ),
+                      if (appId != null)
+                        AppIcon(id: appId!, icon: icon, size: 22)
+                      else
+                        Icon(icon, size: 18, color: on ? action : c.muted),
+                      if (wide) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+                              color: c.ink,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

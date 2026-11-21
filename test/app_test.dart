@@ -39,7 +39,6 @@ void main() {
     await t.ensureVisible(find.widgetWithText(FilledButton, 'Sign in'));
     await t.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await settle(t);
-    expect(find.text('Home'), findsWidgets);
     expect(find.text('1 update available'), findsOneWidget);
   });
 
@@ -76,7 +75,7 @@ void main() {
     expect(find.text('Installed 4.3.1 → latest 4.4.0'), findsOneWidget);
     expect(find.text('Update available'), findsOneWidget);
     expect(find.text('Installed 1.0.3, the latest'), findsOneWidget);
-    expect(find.text('Up to date'), findsOneWidget);
+    expect(find.text('Up to date'), findsNWidgets(2), reason: 'the status, and the figure at the top');
     expect(find.text('Needs AutoCAD'), findsOneWidget);
     expect(find.text('Not installed'), findsNWidgets(3));
     expect(find.text('Update'), findsOneWidget);

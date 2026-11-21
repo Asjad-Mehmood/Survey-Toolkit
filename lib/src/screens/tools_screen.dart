@@ -16,72 +16,139 @@ import '../ui/widgets.dart';
 import '../update/auto_update.dart';
 import '../update/update_prefs.dart';
 
-class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key, required this.model, this.auto});
+/// Which tools Home lists
+enum _Show { all, installed, updates }
+
+class ToolsScreen extends StatefulWidget {
+  const ToolsScreen({super.key, required this.model, this.auto, this.userName});
   final ToolkitModel model;
 
   /// The automatic updates: "Check for updates" updates what is set to Automatic too
   final AutoUpdater? auto;
 
-  Future<void> _check() => auto?.check(self: false) ?? model.refresh();
+  /// For the greeting
+  final String? userName;
+
+  @override
+  State<ToolsScreen> createState() => _ToolsScreenState();
+}
+
+class _ToolsScreenState extends State<ToolsScreen> {
+  _Show _show = _Show.all;
+
+  ToolkitModel get model => widget.model;
+
+  Future<void> _check() => widget.auto?.check(self: false) ?? model.refresh();
+
+  bool _isInstalled(FeedTool t) => model.installedOf(t.id)?.found ?? false;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final updates = model.countIn(ToolState.updateAvailable);
+    final tools = [
+      for (final t in model.tools)
+        if (_show == _Show.all ||
+            (_show == _Show.installed && _isInstalled(t)) ||
+            (_show == _Show.updates && model.stateOfTool(t) == ToolState.updateAvailable))
+          t,
+    ];
     return Scaffold(
-      appBar: PageHeader(
-        title: 'Home',
-        actions: [
-          if (MediaQuery.sizeOf(context).width < 640)
-            IconButton(
-              tooltip: 'Check for updates',
-              onPressed: model.busy ? null : _check,
-              icon: const Icon(Icons.refresh_rounded),
-            )
-          else
-            OutlinedButton.icon(
-              onPressed: model.busy ? null : _check,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Check for updates'),
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
         children: [
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 980),
+              constraints: const BoxConstraints(maxWidth: 1180),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Summary(model: model),
+                  _Welcome(model: model, name: widget.userName, onCheck: model.busy ? null : _check),
                   if (model.problem != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Notice(model.problem!, kind: NoticeKind.warning),
                   ],
-                  const SizedBox(height: 16),
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var i = 0; i < model.tools.length; i++) ...[
-                          if (i > 0) Divider(height: 1, color: c.line),
-                          ToolRow(tool: model.tools[i], model: model),
-                        ],
-                      ],
-                    ),
+                  const SizedBox(height: 24),
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      Text(
+                        'Your tools',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.ink),
+                      ),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SegmentedButton<_Show>(
+                          key: const ValueKey('show'),
+                          showSelectedIcon: false,
+                          segments: [
+                            const ButtonSegment(value: _Show.all, label: Text('All')),
+                            const ButtonSegment(value: _Show.installed, label: Text('Installed')),
+                            ButtonSegment(
+                              value: _Show.updates,
+                              label: Text(updates > 0 ? 'Updates ($updates)' : 'Updates'),
+                            ),
+                          ],
+                          selected: {_show},
+                          onSelectionChanged: (v) => setState(() => _show = v.first),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    model.installer == null
-                        ? 'Look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
-                              'the tool\'s page in your browser.'
-                        : 'Each tool is installed with its own official installer, checked by its SHA-256 '
-                              'first. A tool that is open is never updated: it is updated once it is closed.',
-                    style: TextStyle(color: c.muted, fontSize: 12),
+                  const SizedBox(height: 14),
+                  if (tools.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Text(
+                        _show == _Show.updates ? 'Everything is up to date.' : 'Nothing installed yet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: c.muted),
+                      ),
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, box) {
+                        final scale = MediaQuery.textScalerOf(context).scale(1);
+                        final columns = box.maxWidth >= 1000 * scale
+                            ? 3
+                            : box.maxWidth >= 620 * scale
+                            ? 2
+                            : 1;
+                        const gap = 16.0;
+                        final width = (box.maxWidth - gap * (columns - 1)) / columns;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final t in tools)
+                              SizedBox(
+                                width: width,
+                                child: ToolCard(tool: t, model: model),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 18),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.verified_user_outlined, size: 15, color: c.muted),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          model.installer == null
+                              ? 'Look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
+                                    'the tool\'s page in your browser.'
+                              : 'Each tool is installed with its own official installer, checked by its SHA-256 '
+                                    'first. A tool that is open is never updated: it is updated once it is closed.',
+                          style: TextStyle(color: c.muted, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -101,16 +168,28 @@ String _ago(DateTime t) {
   return '${t.day}/${t.month}/${t.year}';
 }
 
-/// The line at the top: how many updates, how many installed, when last checked (kept current each minute)
-class _Summary extends StatefulWidget {
-  const _Summary({required this.model});
-  final ToolkitModel model;
-
-  @override
-  State<_Summary> createState() => _SummaryState();
+String _greeting() {
+  final h = DateTime.now().hour;
+  return h < 12
+      ? 'Good morning'
+      : h < 17
+      ? 'Good afternoon'
+      : 'Good evening';
 }
 
-class _SummaryState extends State<_Summary> {
+/// The top of Home: a greeting, how things stand, three small figures and Check for updates
+/// (kept current each minute)
+class _Welcome extends StatefulWidget {
+  const _Welcome({required this.model, required this.name, required this.onCheck});
+  final ToolkitModel model;
+  final String? name;
+  final VoidCallback? onCheck;
+
+  @override
+  State<_Welcome> createState() => _WelcomeState();
+}
+
+class _WelcomeState extends State<_Welcome> {
   Timer? _timer;
 
   @override
@@ -128,6 +207,8 @@ class _SummaryState extends State<_Summary> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final action = actionColour(Theme.of(context).brightness);
     final model = widget.model;
     final updates = model.countIn(ToolState.updateAvailable);
     final upToDate = model.countIn(ToolState.upToDate);
@@ -145,29 +226,119 @@ class _SummaryState extends State<_Summary> {
       '$installed of ${model.tools.length} installed',
       if (model.checkedAt != null) 'checked ${_ago(model.checkedAt!)}${model.fromKept ? ' (offline)' : ''}',
     ].join(' · ');
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
+    final first = (widget.name ?? '').split(' ').first;
+
+    Widget figure(String label, String value, IconData icon, Color tint) => Container(
+      constraints: const BoxConstraints(minWidth: 120),
+      padding: const EdgeInsets.fromLTRB(10, 9, 16, 9),
+      decoration: BoxDecoration(
+        color: c.card.withValues(alpha: dark ? 0.55 : 0.8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.line.withValues(alpha: 0.8)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(color: tint.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 16, color: tint),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: c.ink, fontFeatures: tabular),
+                ),
+                Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: c.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final check = model.busy
+        ? const Padding(
+            padding: EdgeInsets.all(8),
+            child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        : MediaQuery.sizeOf(context).width < 640
+        ? IconButton(tooltip: 'Check for updates', onPressed: widget.onCheck, icon: const Icon(Icons.refresh_rounded))
+        : FilledButton.icon(
+            onPressed: widget.onCheck,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Check for updates'),
+          );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.line),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [const Color(0xFF1B2435), const Color(0xFF221F2B)]
+              : [const Color(0xFFE8EFFC), const Color(0xFFFBF4E4)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  headline,
-                  style: TextStyle(color: c.ink, fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      first.isEmpty ? _greeting() : '${_greeting()}, $first',
+                      style: TextStyle(fontSize: 13, color: c.muted, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        headline,
+                        style: TextStyle(color: c.ink, fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: -0.3),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      detail,
+                      style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: tabular),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                detail,
-                style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: tabular),
-              ),
+              const SizedBox(width: 12),
+              check,
             ],
           ),
-        ),
-        if (model.busy) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-      ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              figure('Installed', '$installed / ${model.tools.length}', Icons.inventory_2_outlined, action),
+              figure('Updates', '$updates', Icons.system_update_alt_rounded, c.accent),
+              figure('Up to date', '$upToDate', Icons.check_circle_outline_rounded, c.rise),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -182,21 +353,26 @@ IconData _iconOf(String id) => switch (id) {
   _ => Icons.extension_outlined,
 };
 
-/// One tool on its own (RoadPro's page): its row in a panel
+/// One tool as a raised card (Home and RoadPro's page)
 class ToolCard extends StatelessWidget {
   const ToolCard({super.key, required this.tool, required this.model});
   final FeedTool tool;
   final ToolkitModel model;
 
   @override
-  Widget build(BuildContext context) => Card(
-    clipBehavior: Clip.antiAlias,
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: context.colors.card,
+      borderRadius: BorderRadius.circular(Sizes.panelRadius),
+      border: Border.all(color: context.colors.line),
+      boxShadow: softShadow(context),
+    ),
     child: ToolRow(tool: tool, model: model),
   );
 }
 
-/// One tool: its icon and name, its status and versions, one button for what to do next, and a
-/// ⋯ menu with the rest. Under it while something happens: the progress, then the result.
+/// One tool: its icon and name, its status and versions, the buttons for what to do next, and a
+/// ⋯ menu with the rest. While something happens: the progress, then the result.
 class ToolRow extends StatelessWidget {
   const ToolRow({super.key, required this.tool, required this.model});
   final FeedTool tool;
@@ -314,73 +490,7 @@ class ToolRow extends StatelessWidget {
         ),
       ],
     ];
-    final actions = Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        for (final b in buttons) ...[b, const SizedBox(width: 6)],
-        if (more.isNotEmpty)
-          PopupMenuButton<VoidCallback>(
-            key: ValueKey('more ${tool.id}'),
-            tooltip: 'More',
-            position: PopupMenuPosition.under,
-            onSelected: (run) => run(),
-            itemBuilder: (_) => more,
-            child: SizedBox(
-              width: Sizes.control,
-              height: Sizes.control,
-              child: Icon(Icons.more_horiz_rounded, size: 18, color: c.muted),
-            ),
-          )
-        else
-          const SizedBox(width: Sizes.control),
-      ],
-    );
-
-    final name = Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: c.cardSoft,
-            borderRadius: BorderRadius.circular(Sizes.radius),
-            border: Border.all(color: c.line),
-          ),
-          child: Icon(_iconOf(tool.id), size: 17, color: c.ink),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tool.name,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: c.ink),
-              ),
-              Text(
-                tool.platform,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: c.muted, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-    final status = Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Tag(state.label, color: dot),
-        Text(
-          versions,
-          style: TextStyle(color: c.ink, fontSize: 12.5, fontFeatures: tabular),
-        ),
-      ],
-    );
+    final status = Tag(state.label, color: dot);
     final notes = <Widget>[
       if (installed?.note != null || (state == ToolState.needsAutocad && tool.install.needs != null))
         Text(
@@ -397,79 +507,92 @@ class ToolRow extends StatelessWidget {
             style: TextStyle(color: c.muted, fontSize: 12, fontStyle: FontStyle.italic),
           ),
       if (job)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: _JobBar(progress: model.jobProgress),
-        )
+        _JobBar(progress: model.jobProgress)
       else if (result != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Notice(
-            result.message,
-            kind: result.ok
-                ? NoticeKind.success
-                : result.blocked
-                ? NoticeKind.warning
-                : NoticeKind.problem,
-          ),
+        Notice(
+          result.message,
+          kind: result.ok
+              ? NoticeKind.success
+              : result.blocked
+              ? NoticeKind.warning
+              : NoticeKind.problem,
         ),
     ];
 
+    // a card: the icon, name and status; the versions and notes; the buttons at its foot
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final scale = MediaQuery.textScalerOf(context).scale(1);
-          final wide = box.maxWidth >= 760 * scale;
-          final under = notes.isEmpty
-              ? null
-              : Padding(
-                  padding: const EdgeInsets.only(left: 44, top: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var i = 0; i < notes.length; i++) ...[if (i > 0) const SizedBox(height: 3), notes[i]],
-                    ],
-                  ),
-                );
-          if (wide) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppIcon(id: tool.id, icon: _iconOf(tool.id), size: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 4, child: name),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 5, child: status),
-                    const SizedBox(width: 12),
-                    // the same width on every row, so the status column lines up
-                    ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: 200 * scale),
-                      child: actions,
+                    Text(
+                      tool.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.ink),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      tool.platform,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: c.muted, fontSize: 12),
                     ),
                   ],
                 ),
-                ?under,
-              ],
-            );
-          }
-          // narrow: the status, then the buttons, under the name
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(constraints: const BoxConstraints(maxWidth: 150), child: status),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            versions,
+            style: TextStyle(color: c.ink, fontSize: 12.5, fontFeatures: tabular),
+          ),
+          for (final n in notes) ...[const SizedBox(height: 6), n],
+          const SizedBox(height: 14),
+          Divider(height: 1, color: c.line),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              name,
-              Padding(padding: const EdgeInsets.only(left: 44, top: 6), child: status),
-              ?under,
-              Padding(
-                padding: const EdgeInsets.only(left: 44, top: 8),
+              Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: actions),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final b in buttons) ...[b, const SizedBox(width: 8)],
+                      ],
+                    ),
+                  ),
                 ),
               ),
+              if (more.isNotEmpty)
+                PopupMenuButton<VoidCallback>(
+                  key: ValueKey('more ${tool.id}'),
+                  tooltip: 'More',
+                  position: PopupMenuPosition.under,
+                  onSelected: (run) => run(),
+                  itemBuilder: (_) => more,
+                  child: SizedBox(
+                    width: Sizes.control,
+                    height: Sizes.control,
+                    child: Icon(Icons.more_horiz_rounded, size: 18, color: c.muted),
+                  ),
+                ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }

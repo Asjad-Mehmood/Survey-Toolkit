@@ -328,3 +328,47 @@ class Notice extends StatelessWidget {
     );
   }
 }
+
+/// Each tool's own colours: its icon is a small rounded square in them, like a modern app launcher
+(Color, Color) toolColours(String id) => switch (id) {
+  'excel-to-kml' => (const Color(0xFF16A34A), const Color(0xFF4ADE80)),
+  'roadpro' => (const Color(0xFFEA580C), const Color(0xFFFB923C)),
+  'traverse' => (const Color(0xFF4F46E5), const Color(0xFF818CF8)),
+  'folder-manager' => (const Color(0xFFD97706), const Color(0xFFFBBF24)),
+  'slope' => (const Color(0xFF0891B2), const Color(0xFF22D3EE)),
+  'auto-draft' => (const Color(0xFF7C3AED), const Color(0xFFA78BFA)),
+  _ => (const Color(0xFF475569), const Color(0xFF94A3B8)),
+};
+
+/// A tool's icon: white on its own colours, with a soft shadow
+class AppIcon extends StatelessWidget {
+  const AppIcon({super.key, required this.id, required this.icon, this.size = 40});
+  final String id;
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final (a, b) = toolColours(id);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [a, b]),
+        borderRadius: BorderRadius.circular(size * 0.26),
+        boxShadow: size >= 28
+            ? [BoxShadow(color: a.withValues(alpha: 0.28), blurRadius: size * 0.3, offset: Offset(0, size * 0.08))]
+            : null,
+      ),
+      child: Icon(icon, size: size * 0.5, color: Colors.white),
+    );
+  }
+}
+
+/// The soft shadow of a raised card
+List<BoxShadow> softShadow(BuildContext context) => Theme.of(context).brightness == Brightness.light
+    ? [
+        BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.04), blurRadius: 2, offset: const Offset(0, 1)),
+        BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6)),
+      ]
+    : [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))];
