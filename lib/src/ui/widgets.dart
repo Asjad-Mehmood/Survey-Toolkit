@@ -13,7 +13,7 @@ class SectionCard extends StatefulWidget {
     this.optional = false,
     this.initiallyOpen = true,
     this.trailing,
-    this.padding = const EdgeInsets.fromLTRB(20, 18, 20, 20),
+    this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 16),
   });
 
   final String title;
@@ -41,8 +41,8 @@ class _SectionCardState extends State<SectionCard> {
         if (widget.step != null) ...[StepBadge(widget.step!), const SizedBox(width: 12)],
         Expanded(
           child: Text(
-            widget.title.toUpperCase(),
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: c.ink),
+            widget.title,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.ink),
           ),
         ),
         if (widget.optional) ...[const Tag('Optional'), const SizedBox(width: 6)],
@@ -83,13 +83,13 @@ class _SectionCardState extends State<SectionCard> {
               child: InkWell(
                 onTap: () => setState(() => _open = !_open),
                 child: Padding(
-                  padding: widget.padding.copyWith(bottom: _open ? 14 : widget.padding.top),
+                  padding: widget.padding.copyWith(bottom: _open ? 10 : widget.padding.top),
                   child: head,
                 ),
               ),
             )
           else
-            Padding(padding: widget.padding.copyWith(bottom: 14), child: head),
+            Padding(padding: widget.padding.copyWith(bottom: 10), child: head),
           AnimatedSize(
             duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 200),
             alignment: Alignment.topCenter,
@@ -103,7 +103,7 @@ class _SectionCardState extends State<SectionCard> {
   }
 }
 
-/// The gold circle with a step number.
+/// A small circle with a step number.
 class StepBadge extends StatelessWidget {
   const StepBadge(this.number, {super.key});
   final int number;
@@ -112,49 +112,177 @@ class StepBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      width: 28,
-      height: 28,
+      width: 22,
+      height: 22,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: c.cardSoft,
+        shape: BoxShape.circle,
+        border: Border.all(color: c.line),
+      ),
       child: Text(
         '$number',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: c.onAccent),
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: c.ink),
       ),
     );
   }
 }
 
-/// A small rounded label: "Up to date", "Update available".
+/// A small status label: a coloured dot and the words, "Up to date", "Update available".
+/// [color] is the dot (none: a plain grey label).
 class Tag extends StatelessWidget {
   const Tag(this.text, {super.key, this.color, this.textColor, this.icon});
   final String text;
   final Color? color;
+
+  /// Unused: kept so older calls still build
   final Color? textColor;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final fg = textColor ?? c.muted;
+    final dot = color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color ?? c.cardSoft,
-        borderRadius: BorderRadius.circular(99),
-        border: color == null ? Border.all(color: c.line) : null,
+        color: dot == null ? c.cardSoft : dot.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 14, color: fg), const SizedBox(width: 4)],
+          if (dot != null) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
           Flexible(
             child: Text(
-              text.toUpperCase(),
-              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: fg),
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: dot == null ? c.muted : c.ink),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The bar at the top of a page: its title, a line under it, and the page's buttons on the right.
+class PageHeader extends StatelessWidget implements PreferredSizeWidget {
+  const PageHeader({super.key, required this.title, this.icon, this.subtitle, this.actions = const []});
+  final String title;
+  final IconData? icon;
+  final String? subtitle;
+  final List<Widget> actions;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(Sizes.header);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: c.card,
+      child: Container(
+        height: Sizes.header,
+        padding: const EdgeInsets.only(left: 16, right: 8),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: c.line)),
+        ),
+        child: Row(
+          children: [
+            if (icon != null) ...[Icon(icon, size: 18, color: c.ink), const SizedBox(width: 10)],
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.ink),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(width: 10),
+                    Flexible(
+                      flex: 2,
+                      child: Text(
+                        subtitle!,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, color: c.muted, fontFeatures: tabular),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // the page's buttons; when even they don't fit, they scroll rather than spill over
+            if (actions.isNotEmpty)
+              LayoutBuilder(
+                builder: (context, box) => ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.6),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    reverse: true,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A white panel with a thin line round it, and a title above its rows (Settings)
+class Panel extends StatelessWidget {
+  const Panel({super.key, required this.title, required this.children, this.description, this.trailing});
+  final String title;
+  final String? description;
+  final Widget? trailing;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.ink),
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+        ),
+        Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (description != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  child: Text(description!, style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.45)),
+                ),
+              for (var i = 0; i < children.length; i++) ...[if (i > 0) Divider(height: 1, color: c.line), children[i]],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -172,7 +300,7 @@ class Notice extends StatelessWidget {
     final c = context.colors;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final (Color tint, IconData icon) = switch (kind) {
-      NoticeKind.info => (c.accent, Icons.info_outline_rounded),
+      NoticeKind.info => (c.muted, Icons.info_outline_rounded),
       NoticeKind.success => (c.rise, Icons.check_circle_outline_rounded),
       NoticeKind.warning => (c.accent, Icons.warning_amber_rounded),
       NoticeKind.problem => (c.fall, Icons.error_outline_rounded),
@@ -180,22 +308,19 @@ class Notice extends StatelessWidget {
     return Semantics(
       liveRegion: kind == NoticeKind.problem,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: tint.withValues(alpha: dark ? 0.12 : 0.10),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tint.withValues(alpha: 0.45)),
+          color: kind == NoticeKind.info ? c.cardSoft : tint.withValues(alpha: dark ? 0.12 : 0.08),
+          borderRadius: BorderRadius.circular(Sizes.radius),
+          border: Border.all(color: kind == NoticeKind.info ? c.line : tint.withValues(alpha: 0.35)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: kind == NoticeKind.info || kind == NoticeKind.warning ? c.ink : tint),
-            const SizedBox(width: 10),
+            Icon(icon, size: 16, color: kind == NoticeKind.info ? c.muted : tint),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                text,
-                style: TextStyle(color: c.ink, fontWeight: FontWeight.w500, height: 1.4),
-              ),
+              child: Text(text, style: TextStyle(color: c.ink, fontSize: 12.5, height: 1.45)),
             ),
           ],
         ),

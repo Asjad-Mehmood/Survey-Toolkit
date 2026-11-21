@@ -312,6 +312,28 @@ web window, no sign-in hand-over, the same settings file as the separate program
 (`%APPDATA%\Excel to KML\Project Folder Manager`). Inside the Toolkit it has no "Look for an
 update": a new version comes with a new ref in `pubspec.yaml` and a Toolkit release.
 
+## A professional look (D0 to D4)
+
+The first look was sized like a phone app: 46 px buttons, 14.5 px semi-bold text, a big banner,
+heavy cards. 200+ surveyors now use it on office PCs, so it becomes a calm desktop program in the
+style of Windows 11, with the logo's navy as the one action colour.
+
+- **D0, design first.** Screenshots of every screen (docs/screenshots) for the owner to approve.
+- **D1, the design system and the frame** (lib/src/ui/theme.dart, widgets.dart, workspace_shell.dart):
+  13 px Inter text, 32 px controls, 6–8 px corners, thin lines, grey page and white panels, gold
+  only for an update; a hover instead of ink ripples. A labelled sidebar (icons only when narrow)
+  with Settings and the account at its foot; a 48 px bar on every page.
+  Home is one list of tools, a row each, with one button for what to do next and a ⋯ menu for
+  the rest. Settings holds the theme, Updates, the account and About. *Done with D0.*
+- **D2, the other screens:** sign-in, the closed-beta screen, RoadPro's page and the dialogs in
+  the same style; loading, empty and error states alike.
+- **D3, smoothness:** the web apps are drawn by WebView2 into a Flutter texture (webview_windows
+  copies each frame), which is why scrolling is less smooth than in Edge. Try a WebView2 hosted as
+  a real child window and measure both; check the drop-down problem with it. Then a profile of the
+  release build for needless redraws.
+- **D4, check and release:** screenshots at 100 %, 125 % and 150 % Windows scaling, light and
+  dark; a few testers first, then everyone.
+
 ## Product changes, after the test
 
 These are not part of the test. Each one is listed here and asked for before it is made.

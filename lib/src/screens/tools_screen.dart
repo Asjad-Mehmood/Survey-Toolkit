@@ -1,160 +1,93 @@
-// The Tools page: one card per tool with what is installed on this PC, the latest version and
-// what to do (Install, Update, Open, Uninstall), then the Updates section (T5): running in the
-// background, and Automatic or Ask me for each tool.
+// Home: the tools as one list, a row each, with what is installed on this PC, the latest version
+// and one button for what to do next (Update, Install, Open); the rest (Web app, What's new,
+// Uninstall) is in the row's ⋯ menu. How updates run is in Settings (settings_screen.dart).
 import 'dart:async';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../account/account.dart';
-import '../brand.dart';
 import '../toolkit/feed.dart';
 import '../toolkit/installer.dart';
 import '../toolkit/status.dart';
 import '../toolkit/toolkit_model.dart';
-import '../ui/settings.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import '../update/auto_update.dart';
 import '../update/update_prefs.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({
-    super.key,
-    required this.model,
-    required this.account,
-    required this.settings,
-    this.switcher,
-    this.auto,
-  });
+  const ToolsScreen({super.key, required this.model, this.auto});
   final ToolkitModel model;
-  final Account account;
-  final AppSettings settings;
 
-  /// The automatic updates: "Check again" updates what is set to Automatic too
+  /// The automatic updates: "Check for updates" updates what is set to Automatic too
   final AutoUpdater? auto;
 
   Future<void> _check() => auto?.check(self: false) ?? model.refresh();
 
-  /// The workspace's app grid button, in the header
-  final Widget? switcher;
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: c.card,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset('assets/brand/icon-512.png', width: 32, height: 32, excludeFromSemantics: true),
-            ),
-            const SizedBox(width: 12),
-            const Flexible(
-              child: Text(
-                appName,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
+      appBar: PageHeader(
+        title: 'Home',
         actions: [
-          ?switcher,
-          IconButton(
-            tooltip: 'Check again',
-            onPressed: model.busy ? null : _check,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(
-            tooltip: brightness == Brightness.light ? 'Dark mode' : 'Light mode',
-            onPressed: () => settings.cycleTheme(brightness),
-            icon: Icon(brightness == Brightness.light ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'Account',
-            icon: const Icon(Icons.account_circle_outlined),
-            onSelected: (v) {
-              if (v == 'out') account.signOut();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(enabled: false, child: Text(account.user?.display ?? '')),
-              const PopupMenuItem(value: 'out', child: Text('Sign out')),
-            ],
-          ),
+          if (MediaQuery.sizeOf(context).width < 640)
+            IconButton(
+              tooltip: 'Check for updates',
+              onPressed: model.busy ? null : _check,
+              icon: const Icon(Icons.refresh_rounded),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: model.busy ? null : _check,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Check for updates'),
+            ),
           const SizedBox(width: 8),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: c.line),
-        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _check,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Summary(model: model),
-                    const SizedBox(height: 14),
-                    Notice(
-                      model.installer == null
-                          ? 'Look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
-                                'the tool\'s page in your browser.'
-                          : 'Each tool is installed with its own official installer, checked by its SHA-256 '
-                                'first. A tool that is open is never updated: it is updated once it is closed.',
-                    ),
-                    if (model.problem != null) ...[
-                      const SizedBox(height: 10),
-                      Notice(model.problem!, kind: NoticeKind.warning),
-                    ],
-                    const SizedBox(height: 16),
-                    LayoutBuilder(
-                      builder: (context, box) {
-                        final scale = MediaQuery.textScalerOf(context).scale(1);
-                        final columns = box.maxWidth >= 760 * scale ? 2 : 1;
-                        const gap = 14.0;
-                        final width = (box.maxWidth - gap * (columns - 1)) / columns;
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final t in model.tools)
-                              SizedBox(
-                                width: width,
-                                child: ToolCard(tool: t, model: model),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    if (auto != null && model.installer != null) ...[
-                      const SizedBox(height: 18),
-                      UpdatesSection(model: model, auto: auto!),
-                    ],
-                    const SizedBox(height: 18),
-                    Text(
-                      'Version $appVersion · $appPublisher',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: c.muted, fontSize: 12, fontFeatures: tabular),
-                    ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 980),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Summary(model: model),
+                  if (model.problem != null) ...[
+                    const SizedBox(height: 12),
+                    Notice(model.problem!, kind: NoticeKind.warning),
                   ],
-                ),
+                  const SizedBox(height: 16),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < model.tools.length; i++) ...[
+                          if (i > 0) Divider(height: 1, color: c.line),
+                          ToolRow(tool: model.tools[i], model: model),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    model.installer == null
+                        ? 'Look only: the Toolkit shows what is on this PC and what is new. "Get it" opens '
+                              'the tool\'s page in your browser.'
+                        : 'Each tool is installed with its own official installer, checked by its SHA-256 '
+                              'first. A tool that is open is never updated: it is updated once it is closed.',
+                    style: TextStyle(color: c.muted, fontSize: 12),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -168,7 +101,7 @@ String _ago(DateTime t) {
   return '${t.day}/${t.month}/${t.year}';
 }
 
-/// The banner: how many updates, how many installed, when last checked (kept current each minute)
+/// The line at the top: how many updates, how many installed, when last checked (kept current each minute)
 class _Summary extends StatefulWidget {
   const _Summary({required this.model});
   final ToolkitModel model;
@@ -212,47 +145,29 @@ class _SummaryState extends State<_Summary> {
       '$installed of ${model.tools.length} installed',
       if (model.checkedAt != null) 'checked ${_ago(model.checkedAt!)}${model.fromKept ? ' (offline)' : ''}',
     ].join(' · ');
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [c.heroStart, c.heroEnd]),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            updates > 0 ? Icons.system_update_alt_rounded : Icons.verified_rounded,
-            color: BrandColors.gold,
-            size: 34,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    headline,
-                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  headline,
+                  style: TextStyle(color: c.ink, fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: -0.2),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  detail,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontFeatures: tabular),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                detail,
+                style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: tabular),
+              ),
+            ],
           ),
-          if (model.busy)
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.4, color: BrandColors.gold),
-            ),
-        ],
-      ),
+        ),
+        if (model.busy) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+      ],
     );
   }
 }
@@ -267,8 +182,23 @@ IconData _iconOf(String id) => switch (id) {
   _ => Icons.extension_outlined,
 };
 
+/// One tool on its own (RoadPro's page): its row in a panel
 class ToolCard extends StatelessWidget {
   const ToolCard({super.key, required this.tool, required this.model});
+  final FeedTool tool;
+  final ToolkitModel model;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: ToolRow(tool: tool, model: model),
+  );
+}
+
+/// One tool: its icon and name, its status and versions, one button for what to do next, and a
+/// ⋯ menu with the rest. Under it while something happens: the progress, then the result.
+class ToolRow extends StatelessWidget {
+  const ToolRow({super.key, required this.tool, required this.model});
   final FeedTool tool;
   final ToolkitModel model;
 
@@ -285,11 +215,11 @@ class ToolCard extends StatelessWidget {
     final c = context.colors;
     final installed = model.installedOf(tool.id);
     final state = model.stateOfTool(tool);
-    final (Color? tagColor, Color? tagText, IconData? tagIcon) = switch (state) {
-      ToolState.upToDate => (c.rise, Colors.white, Icons.check_rounded),
-      ToolState.updateAvailable => (c.accent, c.onAccent, Icons.arrow_upward_rounded),
-      ToolState.needsAutocad => (null, null, Icons.block_rounded),
-      _ => (null, null, null),
+    final Color? dot = switch (state) {
+      ToolState.upToDate => c.rise,
+      ToolState.updateAvailable => c.accent,
+      ToolState.unknown => c.muted,
+      _ => null,
     };
     final latest = tool.version;
     final versions = switch (state) {
@@ -304,6 +234,7 @@ class ToolCard extends StatelessWidget {
     final result = model.results[tool.id];
     final canInstall = model.canInstall(tool);
     final uninstallBlock = model.cannotUninstall(tool);
+    final canAct = model.installer != null && tool.download != null;
 
     Future<void> uninstall() async {
       final yes = await showDialog<bool>(
@@ -326,154 +257,245 @@ class ToolCard extends StatelessWidget {
       if (yes == true) await model.uninstall(tool);
     }
 
+    Future<void> open() async {
+      if (!await model.open(tool) && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
+      }
+    }
+
+    Future<void> chooseFolder() async {
+      final folder = await getDirectoryPath(confirmButtonText: 'Use this folder');
+      if (folder != null) await model.setFolderManagerFolder(folder);
+    }
+
+    // the buttons: Update is the one filled button on the page's rows; the others are quiet
     final buttons = <Widget>[
-      if (installed?.program != null)
-        FilledButton.icon(
-          onPressed: job
-              ? null
-              : () async {
-                  if (!await model.open(tool) && context.mounted) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
-                  }
-                },
-          icon: const Icon(Icons.launch_rounded, size: 18),
-          label: const Text('Open'),
-        ),
+      if (installed?.program != null) OutlinedButton(onPressed: job ? null : open, child: const Text('Open')),
       if (state == ToolState.updateAvailable)
-        if (tool.download != null && model.installer != null)
-          FilledButton.tonalIcon(
-            onPressed: canInstall ? () => model.install(tool) : null,
-            icon: const Icon(Icons.system_update_alt_rounded, size: 18),
-            label: const Text('Update'),
-          )
-        else
-          FilledButton.tonalIcon(
-            onPressed: () => _browse(context, tool.page),
-            icon: const Icon(Icons.system_update_alt_rounded, size: 18),
-            label: const Text('Get the update'),
-          ),
+        canAct
+            ? FilledButton(onPressed: canInstall ? () => model.install(tool) : null, child: const Text('Update'))
+            : FilledButton(onPressed: () => _browse(context, tool.page), child: const Text('Get the update')),
       if (state == ToolState.notInstalled || state == ToolState.needsAutocad)
-        if (tool.download != null && model.installer != null)
-          FilledButton.tonalIcon(
-            onPressed: canInstall ? () => model.install(tool) : null,
-            icon: const Icon(Icons.download_rounded, size: 18),
-            label: const Text('Install'),
-          )
-        else
-          FilledButton.tonalIcon(
-            onPressed: () => _browse(context, tool.page),
-            icon: const Icon(Icons.download_rounded, size: 18),
-            label: const Text('Get it'),
-          ),
+        canAct
+            ? OutlinedButton.icon(
+                onPressed: canInstall ? () => model.install(tool) : null,
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Install'),
+              )
+            : OutlinedButton(onPressed: () => _browse(context, tool.page), child: const Text('Get it')),
+    ];
+    final more = <PopupMenuEntry<VoidCallback>>[
       if (tool.webApp != null)
-        OutlinedButton.icon(
-          onPressed: () => _browse(context, tool.webApp!),
-          icon: const Icon(Icons.language_rounded, size: 18),
-          label: const Text('Web app'),
+        PopupMenuItem(
+          value: () => _browse(context, tool.webApp!),
+          height: 32,
+          child: const _MenuLine(Icons.language_rounded, 'Web app'),
         ),
       if (tool.notes != null)
-        TextButton(onPressed: () => _browse(context, tool.notes!), child: const Text('What\'s new')),
-      if (tool.install.kind == 'zip' && state == ToolState.notInstalled)
-        TextButton(
-          onPressed: job
-              ? null
-              : () async {
-                  final folder = await getDirectoryPath(confirmButtonText: 'Use this folder');
-                  if (folder != null) await model.setFolderManagerFolder(folder);
-                },
-          child: const Text('Already have it? Choose its folder'),
+        PopupMenuItem(
+          value: () => _browse(context, tool.notes!),
+          height: 32,
+          child: const _MenuLine(Icons.article_outlined, 'What\'s new'),
         ),
-      if (installed != null && installed.found && model.installer != null && uninstallBlock == null)
-        TextButton(onPressed: model.jobRunning ? null : uninstall, child: const Text('Uninstall')),
+      if (tool.install.kind == 'zip' && state == ToolState.notInstalled)
+        PopupMenuItem(
+          value: chooseFolder,
+          enabled: !job,
+          height: 32,
+          child: const _MenuLine(Icons.folder_open_outlined, 'Already have it? Choose its folder'),
+        ),
+      if (installed != null && installed.found && model.installer != null && uninstallBlock == null) ...[
+        const PopupMenuDivider(height: 9),
+        PopupMenuItem(
+          value: uninstall,
+          enabled: !model.jobRunning,
+          height: 32,
+          child: _MenuLine(Icons.delete_outline_rounded, 'Uninstall', colour: c.fall),
+        ),
+      ],
+    ];
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        for (final b in buttons) ...[b, const SizedBox(width: 6)],
+        if (more.isNotEmpty)
+          PopupMenuButton<VoidCallback>(
+            key: ValueKey('more ${tool.id}'),
+            tooltip: 'More',
+            position: PopupMenuPosition.under,
+            onSelected: (run) => run(),
+            itemBuilder: (_) => more,
+            child: SizedBox(
+              width: Sizes.control,
+              height: Sizes.control,
+              child: Icon(Icons.more_horiz_rounded, size: 18, color: c.muted),
+            ),
+          )
+        else
+          const SizedBox(width: Sizes.control),
+      ],
+    );
+
+    final name = Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: c.cardSoft,
+            borderRadius: BorderRadius.circular(Sizes.radius),
+            border: Border.all(color: c.line),
+          ),
+          child: Icon(_iconOf(tool.id), size: 17, color: c.ink),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tool.name,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: c.ink),
+              ),
+              Text(
+                tool.platform,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: c.muted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final status = Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Tag(state.label, color: dot),
+        Text(
+          versions,
+          style: TextStyle(color: c.ink, fontSize: 12.5, fontFeatures: tabular),
+        ),
+      ],
+    );
+    final notes = <Widget>[
+      if (installed?.note != null || (state == ToolState.needsAutocad && tool.install.needs != null))
+        Text(
+          state == ToolState.needsAutocad ? tool.install.needs! : installed!.note!,
+          style: TextStyle(color: c.muted, fontSize: 12),
+        ),
+      if (waitText(model, tool, state) case final wait?) Text(wait, style: TextStyle(color: c.muted, fontSize: 12)),
+      // the website's notes on a tool are for the owner; a user sees them only when the download
+      // can't be checked
+      if (tool.download == null && !model.noFeed)
+        for (final p in tool.problems)
+          Text(
+            p,
+            style: TextStyle(color: c.muted, fontSize: 12, fontStyle: FontStyle.italic),
+          ),
+      if (job)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: _JobBar(progress: model.jobProgress),
+        )
+      else if (result != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Notice(
+            result.message,
+            kind: result.ok
+                ? NoticeKind.success
+                : result.blocked
+                ? NoticeKind.warning
+                : NoticeKind.problem,
+          ),
+        ),
     ];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(color: c.cardSoft, borderRadius: BorderRadius.circular(12)),
-                  child: Icon(_iconOf(tool.id), color: c.ink),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final scale = MediaQuery.textScalerOf(context).scale(1);
+          final wide = box.maxWidth >= 760 * scale;
+          final under = notes.isEmpty
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(left: 44, top: 6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(tool.name, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Text(tool.platform, style: TextStyle(color: c.muted, fontSize: 13)),
+                      for (var i = 0; i < notes.length; i++) ...[if (i > 0) const SizedBox(height: 3), notes[i]],
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // the status and the versions: side by side, or the versions under it when narrow
-            Wrap(
-              spacing: 10,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
+                );
+          if (wide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Tag(state.label, color: tagColor, textColor: tagText, icon: tagIcon),
-                Text(
-                  versions,
-                  style: TextStyle(color: c.ink, fontWeight: FontWeight.w600, fontFeatures: tabular),
+                Row(
+                  children: [
+                    Expanded(flex: 4, child: name),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 5, child: status),
+                    const SizedBox(width: 12),
+                    // the same width on every row, so the status column lines up
+                    ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: 200 * scale),
+                      child: actions,
+                    ),
+                  ],
                 ),
+                ?under,
               ],
-            ),
-            if (installed?.note != null || (state == ToolState.needsAutocad && tool.install.needs != null)) ...[
-              const SizedBox(height: 4),
-              Text(
-                state == ToolState.needsAutocad ? tool.install.needs! : installed!.note!,
-                style: TextStyle(color: c.muted, fontSize: 13),
+            );
+          }
+          // narrow: the status, then the buttons, under the name
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              name,
+              Padding(padding: const EdgeInsets.only(left: 44, top: 6), child: status),
+              ?under,
+              Padding(
+                padding: const EdgeInsets.only(left: 44, top: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: actions),
+                ),
               ),
             ],
-            if (waitText(model, tool, state) case final wait?) ...[
-              const SizedBox(height: 4),
-              Text(wait, style: TextStyle(color: c.muted, fontSize: 13)),
-            ],
-            // the website's notes on a tool are for the owner; a user sees them only when the download
-            // can't be checked
-            if (tool.download == null && !model.noFeed)
-              for (final p in tool.problems) ...[
-                const SizedBox(height: 8),
-                Text(
-                  p,
-                  style: TextStyle(color: c.muted, fontSize: 12.5, fontStyle: FontStyle.italic),
-                ),
-              ],
-            if (job) ...[
-              const SizedBox(height: 14),
-              _JobBar(progress: model.jobProgress),
-            ] else if (result != null) ...[
-              const SizedBox(height: 12),
-              Notice(
-                result.message,
-                kind: result.ok
-                    ? NoticeKind.success
-                    : result.blocked
-                    ? NoticeKind.warning
-                    : NoticeKind.problem,
-              ),
-            ],
-            if (buttons.isNotEmpty) ...[const SizedBox(height: 14), Wrap(spacing: 8, runSpacing: 8, children: buttons)],
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-/// What the job on a card is doing: Downloading 42 %, Installing, Checking
+/// A line of a ⋯ menu: its icon and words
+class _MenuLine extends StatelessWidget {
+  const _MenuLine(this.icon, this.text, {this.colour});
+  final IconData icon;
+  final String text;
+  final Color? colour;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 16, color: colour ?? context.colors.muted),
+      const SizedBox(width: 10),
+      Flexible(
+        child: Text(text, style: TextStyle(fontSize: 13, color: colour ?? context.colors.ink)),
+      ),
+    ],
+  );
+}
+
+/// What the job on a row is doing: Downloading 42 %, Installing, Checking
 class _JobBar extends StatelessWidget {
   const _JobBar({required this.progress});
   final JobProgress? progress;
@@ -492,12 +514,15 @@ class _JobBar extends StatelessWidget {
           children: [
             Text(
               f == null ? '$step…' : '$step… ${(f * 100).round()} %',
-              style: TextStyle(color: c.ink, fontWeight: FontWeight.w600, fontFeatures: tabular),
+              style: TextStyle(color: c.ink, fontSize: 12.5, fontWeight: FontWeight.w500, fontFeatures: tabular),
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(value: f, minHeight: 6, color: c.accent, backgroundColor: c.cardSoft),
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(value: f, minHeight: 4),
+              ),
             ),
           ],
         ),
@@ -515,7 +540,7 @@ String? waitText(ToolkitModel model, FeedTool tool, ToolState state) {
       : 'Updates by itself when it isn\'t open.';
 }
 
-/// Running in the background, and each tool's Automatic or Ask me
+/// Settings → Updates: running in the background, and each installed tool's Automatic or Ask me
 class UpdatesSection extends StatelessWidget {
   const UpdatesSection({super.key, required this.model, required this.auto});
   final ToolkitModel model;
@@ -527,60 +552,46 @@ class UpdatesSection extends StatelessWidget {
     final bg = auto.background;
     return ListenableBuilder(
       listenable: Listenable.merge([bg, model.updates, auto]),
-      builder: (context, _) => Card(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.autorenew_rounded, color: c.ink),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Updates', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700)),
-                  ),
-                  if (auto.updating)
-                    const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2)),
-                ],
+      builder: (context, _) => Panel(
+        title: 'Updates',
+        trailing: auto.updating
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.8))
+            : null,
+        description:
+            'The Toolkit checks when it opens and every 4 hours while it runs. A tool set to Automatic is '
+            'updated as soon as it is closed, and a Windows notification says so.',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: SwitchListTile(
+              key: const ValueKey('background switch'),
+              contentPadding: EdgeInsets.zero,
+              value: bg.on,
+              onChanged: !bg.known || bg.saving ? null : (v) => bg.setOn(v),
+              title: const Text('Start with Windows and keep running in the tray'),
+              subtitle: Text(
+                bg.on
+                    ? 'Closing the window keeps the Toolkit in the tray, so updates go on. Quit it from the tray icon.'
+                    : 'Off: updates happen only while the Toolkit is open.',
               ),
-              const SizedBox(height: 6),
-              Text(
-                'The Toolkit checks when it opens and every 4 hours while it runs. A tool set to Automatic is '
-                'updated as soon as it is closed, and a Windows notification says so.',
-                style: TextStyle(color: c.muted, fontSize: 13),
-              ),
-              const SizedBox(height: 6),
-              SwitchListTile(
-                key: const ValueKey('background switch'),
-                contentPadding: EdgeInsets.zero,
-                value: bg.on,
-                onChanged: !bg.known || bg.saving ? null : (v) => bg.setOn(v),
-                title: const Text(
-                  'Start with Windows and keep running in the tray',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  bg.on
-                      ? 'Closing the window keeps the Toolkit in the tray, so updates go on. Quit it from the tray icon.'
-                      : 'Off: updates happen only while the Toolkit is open.',
-                ),
-              ),
-              if (bg.problem != null) Notice(bg.problem!, kind: NoticeKind.warning),
-              Divider(color: c.line, height: 20),
-              for (final t in model.tools)
-                if (model.installedOf(t.id)?.found ?? false) _ModeRow(tool: t, model: model),
-              if (!model.tools.any((t) => model.installedOf(t.id)?.found ?? false))
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    'Once a tool is installed, choose here how it is updated.',
-                    style: TextStyle(color: c.muted, fontSize: 13),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
+          if (bg.problem != null)
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Notice(bg.problem!, kind: NoticeKind.warning),
+            ),
+          for (final t in model.tools)
+            if (model.installedOf(t.id)?.found ?? false) _ModeRow(tool: t, model: model),
+          if (!model.tools.any((t) => model.installedOf(t.id)?.found ?? false))
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                'Once a tool is installed, choose here how it is updated.',
+                style: TextStyle(color: c.muted, fontSize: 12.5),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -605,14 +616,17 @@ class _ModeRow extends StatelessWidget {
     final name = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(tool.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          tool.name,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.ink),
+        ),
         if (tool.install.opensAfterSilentInstall && mode == UpdateMode.automatic)
-          Text('When you open it from the Toolkit', style: TextStyle(color: c.muted, fontSize: 12.5)),
+          Text('When you open it from the Toolkit', style: TextStyle(color: c.muted, fontSize: 12)),
       ],
     );
     // side by side, or the choice under the name when narrow
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: SizedBox(
         width: double.infinity,
         child: Wrap(

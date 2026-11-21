@@ -61,7 +61,7 @@ most of it already (PCs, versions, failures); the rest needs their eyes.
 **The workspace**
 - [ ] Excel to KML, Traverse & Level and Slope Calculator open inside the Toolkit, **already signed
       in**
-- [ ] Switching between them keeps each where it was; the app grid and Ctrl+1 to Ctrl+4 work
+- [ ] Switching between them keeps each where it was; the sidebar and Ctrl+1 to Ctrl+6 work
 - [ ] A file saved in a web app shows in the account on the website
 
 **Updates**
