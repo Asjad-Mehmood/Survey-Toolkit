@@ -25,7 +25,7 @@ void main() {
     final h = Harness(site: FakeSite(), store: Store.memory());
     await t.pumpWidget(h.app);
     await settle(t);
-    expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
+    expect(find.text('Your Excel to KML account'), findsOneWidget);
     expect(find.textContaining('One account for every tool'), findsOneWidget);
 
     await t.enterText(find.widgetWithText(TextField, 'Email'), 'tester@example.com');
@@ -39,7 +39,6 @@ void main() {
     await t.ensureVisible(find.widgetWithText(FilledButton, 'Sign in'));
     await t.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await settle(t);
-    expect(find.text('Survey Toolkit'), findsOneWidget);
     expect(find.text('1 update available'), findsOneWidget);
   });
 
@@ -74,16 +73,25 @@ void main() {
     expect(find.text('1 update available'), findsOneWidget);
     expect(find.textContaining('2 of 6 installed'), findsOneWidget);
     expect(find.text('Installed 4.3.1 → latest 4.4.0'), findsOneWidget);
-    expect(find.text('UPDATE AVAILABLE'), findsOneWidget);
+    expect(find.text('Update available'), findsOneWidget);
     expect(find.text('Installed 1.0.3, the latest'), findsOneWidget);
-    expect(find.text('UP TO DATE'), findsOneWidget);
-    expect(find.text('NEEDS AUTOCAD'), findsOneWidget);
-    expect(find.text('NOT INSTALLED'), findsNWidgets(3));
+    expect(find.text('Up to date'), findsNWidgets(2), reason: 'the status, and the figure at the top');
+    expect(find.text('Needs AutoCAD'), findsOneWidget);
+    expect(find.text('Not installed'), findsNWidgets(3));
     expect(find.text('Update'), findsOneWidget);
     expect(find.text('Install'), findsNWidgets(4));
-    expect(find.text('Uninstall'), findsNWidgets(2));
     expect(find.text('Open'), findsNWidgets(2));
-    expect(find.text('Web app'), findsNWidgets(2));
+    // the rest is in each row's ⋯ menu
+    expect(find.text('Uninstall'), findsNothing);
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more slope')));
+    await settle(t);
+    expect(find.text('Web app'), findsOneWidget);
+    expect(find.text('What\'s new'), findsOneWidget);
+    expect(find.text('Uninstall'), findsOneWidget);
+    await t.tapAt(Offset.zero);
+    await settle(t);
     // Project Folder Manager 7 has an installer: no folder to choose any more
     expect(find.text('Already have it? Choose its folder'), findsNothing);
     // the website's note on Slope Calculator is for the owner: its download is fine, so not shown
@@ -115,6 +123,10 @@ void main() {
     await settle(t);
     expect(find.text('Get the update'), findsOneWidget);
     expect(find.text('Get it'), findsNWidgets(4));
+    await t.ensureVisible(find.byKey(const ValueKey('more excel-to-kml')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more excel-to-kml')));
+    await settle(t);
     expect(find.text('Uninstall'), findsNothing);
     expect(find.textContaining('Look only'), findsOneWidget);
   });
@@ -141,11 +153,17 @@ void main() {
       find.ancestor(of: find.text('Install'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
     );
     expect(installs.every((b) => b.onPressed == null), isTrue);
-    final uninstalls = t.widgetList<ButtonStyleButton>(
-      find.ancestor(of: find.text('Uninstall'), matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
+    // and Uninstall in the ⋯ menu is greyed out
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more slope')));
+    await t.pump(const Duration(milliseconds: 400));
+    final uninstall = t.widget<PopupMenuItem<VoidCallback>>(
+      find.ancestor(of: find.text('Uninstall'), matching: find.byWidgetPredicate((w) => w is PopupMenuItem)),
     );
-    expect(uninstalls, isNotEmpty);
-    expect(uninstalls.every((b) => b.onPressed == null), isTrue);
+    expect(uninstall.enabled, isFalse);
+    await t.tapAt(Offset.zero);
+    await t.pump(const Duration(milliseconds: 400));
 
     installer.gate!.complete();
     await settle(t);
@@ -204,16 +222,22 @@ void main() {
     await settle(t);
     site.reports.clear();
 
-    await t.ensureVisible(find.text('Uninstall').last);
-    await t.tap(find.text('Uninstall').last);
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more slope')));
+    await settle(t);
+    await t.tap(find.text('Uninstall'));
     await settle(t);
     expect(find.text('Uninstall Slope Calculator?'), findsOneWidget);
     await t.tap(find.text('Cancel'));
     await settle(t);
     expect(installer.calls, isEmpty);
 
-    await t.ensureVisible(find.text('Uninstall').last);
-    await t.tap(find.text('Uninstall').last);
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more slope')));
+    await settle(t);
+    await t.tap(find.text('Uninstall'));
     await settle(t);
     await t.tap(find.widgetWithText(FilledButton, 'Uninstall'));
     await settle(t);
@@ -260,7 +284,7 @@ void main() {
     final h = Harness(site: site, store: signedInStore());
     await t.pumpWidget(h.app);
     await settle(t);
-    expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
+    expect(find.text('Your Excel to KML account'), findsOneWidget);
   });
 
   group('the workspace', () {
@@ -334,17 +358,37 @@ void main() {
       expect(h.natives, ['folder-manager'], reason: 'built once, still open');
     });
 
-    testWidgets('the app grid, like Google\'s, jumps to any app', (t) async {
+    testWidgets('Settings at the foot of the sidebar: theme, updates, account; Ctrl+, opens it', (t) async {
+      final h = await open(t);
+      await t.tap(find.byKey(const ValueKey('workspace Settings')));
+      await settle(t);
+      expect(find.text('Appearance'), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('tester@example.com'), findsWidgets);
+      await t.tap(find.descendant(of: find.byKey(const ValueKey('theme')), matching: find.text('Dark')));
+      await settle(t);
+      expect(h.settings.themeMode, ThemeMode.dark);
+      // Settings isn't remembered as where the user was
+      expect(h.store.read('workspace-last'), isNot('settings'));
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('Appearance'), findsNothing);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.comma);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('Appearance'), findsOneWidget);
+    });
+
+    testWidgets('the account at the foot of the sidebar signs out', (t) async {
       await open(t);
-      await t.tap(find.byTooltip('Switch app'));
+      await t.tap(find.byKey(const ValueKey('account menu')));
       await settle(t);
-      for (final name in ['Home', 'Excel to KML', 'Traverse & Level', 'Slope Calculator', 'Project Folder Manager']) {
-        expect(find.byKey(ValueKey('grid $name')), findsOneWidget, reason: name);
-      }
-      await t.tap(find.byKey(const ValueKey('grid Traverse & Level')));
+      await t.tap(find.text('Sign out'));
       await settle(t);
-      expect(find.textContaining('Showing https://www.exceltokml.com/api/toolkit/handoff'), findsOneWidget);
-      expect(find.text('Traverse & Level'), findsWidgets);
+      expect(find.text('Your Excel to KML account'), findsOneWidget);
     });
 
     testWidgets('Ctrl+1 to Ctrl+5', (t) async {
@@ -379,7 +423,7 @@ void main() {
       await settle(t);
       await h.account.signOut();
       await settle(t);
-      expect(find.text('Your Excel to KML account'.toUpperCase()), findsOneWidget);
+      expect(find.text('Your Excel to KML account'), findsOneWidget);
       expect(h.views.every((v) => v.forgot), isTrue);
     });
 

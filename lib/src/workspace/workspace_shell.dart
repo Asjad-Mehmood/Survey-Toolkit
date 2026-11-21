@@ -1,8 +1,9 @@
-// The workspace: like the Microsoft 365 app, one window with a sidebar. Home is the Tools page;
+// The workspace: one window with a sidebar, like a Windows 11 program. Home is the Tools page;
 // Excel to KML, Traverse & Level and Slope Calculator open inside the window, signed in already
 // (the website's single-use sign-in handover), Project Folder Manager runs inside it as part of
-// the Toolkit, and RoadPro has its own page (lib/src/roadpro: it runs inside AutoCAD). Each stays open in the background when you switch, like tabs. Like Google's apps,
-// the grid button in the header jumps to any of them too. Ctrl+1 is Home, Ctrl+2 to Ctrl+6 the apps.
+// the Toolkit, and RoadPro has its own page (lib/src/roadpro: it runs inside AutoCAD). Each stays
+// open in the background when you switch, like tabs. Settings and the account are at the foot of
+// the sidebar. Ctrl+1 is Home, Ctrl+2 to Ctrl+6 the apps, Ctrl+, Settings.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,10 +15,12 @@ import '../account/account.dart';
 import '../brand.dart';
 import '../roadpro/roadpro_panel.dart';
 import '../roadpro/roadpro_pc.dart';
+import '../screens/settings_screen.dart';
 import '../screens/tools_screen.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
 import '../ui/theme.dart';
+import '../ui/widgets.dart';
 import '../update/auto_update.dart';
 import 'app_view.dart';
 import 'apps.dart';
@@ -92,7 +95,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   }
 
   void _show(int page, {bool remember = true}) {
-    if (page > 0) {
+    if (page > 0 && page <= workspaceApps.length) {
       final app = workspaceApps[page - 1];
       if (app.native) {
         _nativeOpen.putIfAbsent(
@@ -105,45 +108,47 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         _open.putIfAbsent(app.id, () => widget.views(app, () => _startOf(app)));
       }
     }
-    if (remember) widget.model.store.write(_lastKey, page == 0 ? 'home' : workspaceApps[page - 1].id);
+    if (remember && page <= workspaceApps.length) {
+      widget.model.store.write(_lastKey, page == 0 ? 'home' : workspaceApps[page - 1].id);
+    }
     setState(() => _page = page);
   }
 
-  Widget _switcher() => _AppGridButton(current: _page, onPick: _show);
+  /// The page after the apps
+  static final _settingsPage = workspaceApps.length + 1;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final wide = MediaQuery.sizeOf(context).width >= 700;
+    final wide = MediaQuery.sizeOf(context).width >= 900;
     final pages = <Widget>[
       ToolsScreen(
         model: widget.model,
-        account: widget.account,
-        settings: widget.settings,
-        switcher: _switcher(),
         auto: widget.auto,
+        userName: widget.account.user?.display,
+        settings: widget.settings,
       ),
       for (final app in workspaceApps)
         if (app.native)
-          _nativeOpen[app.id] == null
-              ? const SizedBox.shrink()
-              : _NativePanel(app: app, view: _nativeOpen[app.id]!, switcher: _switcher())
+          _nativeOpen[app.id] == null ? const SizedBox.shrink() : _NativePanel(app: app, view: _nativeOpen[app.id]!)
         else
           _open[app.id] == null
               ? const SizedBox.shrink()
-              : _AppPanel(app: app, view: _open[app.id]!, model: widget.model, switcher: _switcher()),
+              : _AppPanel(app: app, view: _open[app.id]!, model: widget.model),
+      SettingsScreen(model: widget.model, account: widget.account, settings: widget.settings, auto: widget.auto),
     ];
     return CallbackShortcuts(
       bindings: {
         for (var i = 0; i <= workspaceApps.length; i++)
           SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i), control: true): () => _show(i),
+        const SingleActivator(LogicalKeyboardKey.comma, control: true): () => _show(_settingsPage),
       },
       child: Focus(
         autofocus: true,
         child: Scaffold(
           body: Row(
             children: [
-              _Sidebar(page: _page, wide: wide, onPick: _show),
+              _Sidebar(page: _page, wide: wide, onPick: _show, account: widget.account, settingsPage: _settingsPage),
               VerticalDivider(width: 1, color: c.line),
               Expanded(
                 child: IndexedStack(index: _page, sizing: StackFit.expand, children: pages),
@@ -156,184 +161,284 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   }
 }
 
+/// The sidebar: the Toolkit's name, Home and the apps, and at its foot Settings and the account.
+/// Narrow windows show the icons only.
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.page, required this.wide, required this.onPick});
+  const _Sidebar({
+    required this.page,
+    required this.wide,
+    required this.onPick,
+    required this.settingsPage,
+    this.account,
+  });
   final int page;
   final bool wide;
   final void Function(int) onPick;
+  final int settingsPage;
+
+  /// The signed-in account, at the foot (none in the Windows test's preview)
+  final Account? account;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    Widget item(int i, IconData icon, String label, String tooltip) {
-      final on = page == i;
-      return Tooltip(
-        message: '$tooltip  (Ctrl+${i + 1})',
-        child: Semantics(
-          selected: on,
-          button: true,
-          label: tooltip,
-          child: InkWell(
-            key: ValueKey('workspace $label'),
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => onPick(i),
-            child: ExcludeSemantics(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 52,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: on ? c.accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Icon(icon, size: 22, color: on ? c.onAccent : c.ink),
-                    ),
-                    if (wide) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                          color: on ? c.ink : c.muted,
-                        ),
-                      ),
-                    ],
-                  ],
+    return Container(
+      width: wide ? 248 : 64,
+      color: c.card,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: Sizes.header,
+            padding: EdgeInsets.symmetric(horizontal: wide ? 16 : 0),
+            child: Row(
+              mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: Image.asset('assets/brand/icon-512.png', width: 26, height: 26, excludeFromSemantics: true),
                 ),
-              ),
+                if (wide) ...[
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      appName,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.ink, letterSpacing: -0.2),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        ),
-      );
-    }
-
-    return Container(
-      width: wide ? 92 : 68,
-      color: c.card,
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset('assets/brand/icon-512.png', width: 36, height: 36, excludeFromSemantics: true),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _NavItem(
+                  label: 'Home',
+                  name: 'Home',
+                  icon: Icons.home_outlined,
+                  on: page == 0,
+                  wide: wide,
+                  shortcut: 'Ctrl+1',
+                  onTap: () => onPick(0),
+                ),
+                if (wide)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 16, 6),
+                    child: Text(
+                      'Apps',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: c.muted),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 8),
+                for (var i = 0; i < workspaceApps.length; i++)
+                  _NavItem(
+                    label: workspaceApps[i].short,
+                    name: workspaceApps[i].name,
+                    icon: workspaceApps[i].icon,
+                    appId: workspaceApps[i].id,
+                    on: page == i + 1,
+                    wide: wide,
+                    shortcut: 'Ctrl+${i + 2}',
+                    onTap: () => onPick(i + 1),
+                  ),
+              ],
             ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                children: [
-                  item(0, Icons.space_dashboard_outlined, 'Home', 'Home: all tools'),
-                  const SizedBox(height: 4),
-                  for (var i = 0; i < workspaceApps.length; i++) ...[
-                    item(i + 1, workspaceApps[i].icon, workspaceApps[i].short, workspaceApps[i].name),
-                    const SizedBox(height: 4),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          Divider(height: 1, color: c.line),
+          const SizedBox(height: 6),
+          _NavItem(
+            label: 'Settings',
+            name: 'Settings',
+            icon: Icons.settings_outlined,
+            on: page == settingsPage,
+            wide: wide,
+            shortcut: 'Ctrl+,',
+            onTap: () => onPick(settingsPage),
+          ),
+          if (account?.user case final user?)
+            _AccountTile(account: account!, name: user.display, email: user.email, wide: wide),
+          const SizedBox(height: 6),
+        ],
       ),
     );
   }
 }
 
-/// The Google-style grid of apps in the header
-class _AppGridButton extends StatelessWidget {
-  const _AppGridButton({required this.current, required this.onPick});
-  final int current;
-  final void Function(int) onPick;
+/// One line of the sidebar: a quiet hover, and a navy bar and tint on the page that is showing
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.label,
+    required this.name,
+    required this.icon,
+    required this.on,
+    required this.wide,
+    required this.shortcut,
+    required this.onTap,
+    this.appId,
+  });
 
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: 'Switch app',
-    icon: const Icon(Icons.apps_rounded),
-    onPressed: () async {
-      // a panel under the button, like Google's app grid
-      final box = context.findRenderObject()! as RenderBox;
-      final below = box.localToGlobal(Offset(0, box.size.height));
-      final right = MediaQuery.sizeOf(context).width - below.dx - box.size.width;
-      final picked = await showGeneralDialog<int>(
-        context: context,
-        barrierDismissible: true,
-        barrierLabel: 'Close the app grid',
-        barrierColor: Colors.transparent,
-        transitionDuration: const Duration(milliseconds: 120),
-        pageBuilder: (context, _, _) => SafeArea(
-          child: Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: EdgeInsets.only(top: below.dy + 4, right: right.clamp(8, double.infinity).toDouble()),
-              child: Material(
-                elevation: 8,
-                color: context.colors.card,
-                borderRadius: BorderRadius.circular(18),
-                child: _AppGrid(current: current),
-              ),
-            ),
-          ),
-        ),
-        transitionBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
-      );
-      if (picked != null) onPick(picked);
-    },
-  );
-}
+  /// An app's id: its icon is drawn in the app's own colours
+  final String? appId;
 
-class _AppGrid extends StatelessWidget {
-  const _AppGrid({required this.current});
-  final int current;
+  /// The short name, also the test key ("workspace Slope")
+  final String label;
+
+  /// What the sidebar shows when wide
+  final String name;
+  final IconData icon;
+  final bool on;
+  final bool wide;
+  final String shortcut;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    Widget tile(int i, IconData icon, String name) => SizedBox(
-      width: 140,
-      child: InkWell(
-        key: ValueKey('grid $name'),
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => Navigator.pop(context, i),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(color: i == current ? c.cardSoft : null, borderRadius: BorderRadius.circular(14)),
-          child: Column(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(color: BrandColors.navy, borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: BrandColors.gold),
+    final item = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: Semantics(
+        selected: on,
+        button: true,
+        label: name,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: on ? highlightColour(Theme.of(context).brightness).withValues(alpha: 0.10) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              key: ValueKey('workspace $label'),
+              borderRadius: BorderRadius.circular(Sizes.radius),
+              onTap: onTap,
+              child: ExcludeSemantics(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 42),
+                  child: Row(
+                    mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
+                    children: [
+                      // the bar on the left of the page that is showing, as in Windows 11
+                      if (wide)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          width: 3,
+                          height: on ? 16 : 0,
+                          margin: const EdgeInsets.only(right: 9),
+                          decoration: BoxDecoration(
+                            color: highlightColour(Theme.of(context).brightness),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      if (appId != null)
+                        AppIcon(id: appId!, icon: icon, size: 26)
+                      else
+                        Icon(icon, size: 20, color: on ? highlightColour(Theme.of(context).brightness) : c.muted),
+                      if (wide) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: on ? FontWeight.w600 : FontWeight.w500,
+                              color: on ? highlightColour(Theme.of(context).brightness) : c.ink,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                name,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: c.ink, fontWeight: FontWeight.w600, fontSize: 13),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
-    return Container(
-      width: 304,
-      padding: const EdgeInsets.all(10),
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
-        children: [
-          tile(0, Icons.space_dashboard_outlined, 'Home'),
-          for (var i = 0; i < workspaceApps.length; i++) tile(i + 1, workspaceApps[i].icon, workspaceApps[i].name),
+    return Tooltip(message: wide ? shortcut : '$name  ($shortcut)', child: item);
+  }
+}
+
+/// Who is signed in, at the foot of the sidebar; pressing it offers Sign out
+class _AccountTile extends StatelessWidget {
+  const _AccountTile({required this.account, required this.name, required this.email, required this.wide});
+  final Account account;
+  final String name;
+  final String email;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final action = actionColour(Theme.of(context).brightness);
+    final avatar = CircleAvatar(
+      radius: 12,
+      backgroundColor: action.withValues(alpha: 0.14),
+      child: Text(
+        name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: action),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: PopupMenuButton<String>(
+        key: const ValueKey('account menu'),
+        tooltip: 'Account',
+        position: PopupMenuPosition.over,
+        offset: const Offset(0, -64),
+        onSelected: (v) {
+          if (v == 'out') account.signOut();
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            enabled: false,
+            height: 30,
+            child: Text(email, style: TextStyle(fontSize: 12, color: c.muted)),
+          ),
+          const PopupMenuItem(
+            value: 'out',
+            height: 32,
+            child: Row(children: [Icon(Icons.logout_rounded, size: 16), SizedBox(width: 10), Text('Sign out')]),
+          ),
         ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              if (wide) const SizedBox(width: 10),
+              avatar,
+              if (wide) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: c.ink),
+                      ),
+                      Text(
+                        email,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11.5, color: c.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.unfold_more_rounded, size: 16, color: c.muted),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -343,76 +448,33 @@ class _AppGrid extends StatelessWidget {
 /// then the program itself, with its own top bar, keys and settings (the same as the separate
 /// program's, so both show the same project folders).
 class _NativePanel extends StatelessWidget {
-  const _NativePanel({required this.app, required this.view, required this.switcher});
+  const _NativePanel({required this.app, required this.view});
   final WorkspaceApp app;
   final Widget view;
-  final Widget? switcher;
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: c.card,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 48,
-        titleSpacing: 12,
-        title: Row(
-          children: [
-            Icon(app.icon, color: c.ink),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                app.name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
-        actions: [?switcher, const SizedBox(width: 8)],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: c.line),
-        ),
-      ),
-      body: view,
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    appBar: PageHeader(title: app.name, icon: app.icon),
+    body: view,
+  );
 }
 
 /// One app inside the window: its toolbar and its page
 class _AppPanel extends StatelessWidget {
-  const _AppPanel({required this.app, required this.view, required this.model, required this.switcher});
+  const _AppPanel({required this.app, required this.view, required this.model});
   final WorkspaceApp app;
   final AppViewHandle view;
   final ToolkitModel? model;
-  final Widget? switcher;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
     final model = this.model;
     final tool = model?.tools.where((t) => t.id == app.toolId).firstOrNull;
     final installed = tool == null ? null : model!.installedOf(tool.id);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: c.card,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 12,
-        title: Row(
-          children: [
-            Icon(app.icon, color: c.ink),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                app.name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
+      appBar: PageHeader(
+        title: app.name,
+        icon: app.icon,
         actions: [
           ValueListenableBuilder(
             valueListenable: view.state,
@@ -422,7 +484,7 @@ class _AppPanel extends StatelessWidget {
                 if (s.loading && s.problem == null)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2)),
+                    child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.8)),
                   ),
                 IconButton(
                   tooltip: 'Back',
@@ -438,36 +500,43 @@ class _AppPanel extends StatelessWidget {
               ],
             ),
           ),
-          if (tool != null && installed?.program != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextButton.icon(
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  if (model!.updatesOnOpen(tool)) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Updating ${tool.name} to ${tool.version} before it opens…')),
-                    );
-                  }
-                  if (!await model.open(tool)) {
-                    messenger.showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
-                  }
-                },
-                icon: const Icon(Icons.desktop_windows_outlined, size: 18),
-                label: const Text('Windows app'),
-              ),
+          if (tool != null && installed?.program != null) ...[
+            const SizedBox(width: 6),
+            _WindowsAppButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (model!.updatesOnOpen(tool)) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Updating ${tool.name} to ${tool.version} before it opens…')),
+                  );
+                }
+                if (!await model.open(tool)) {
+                  messenger.showSnackBar(SnackBar(content: Text('${tool.name} could not be opened.')));
+                }
+              },
             ),
-          ?switcher,
-          const SizedBox(width: 8),
+          ],
+          const SizedBox(width: 4),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: c.line),
-        ),
       ),
       body: view.build(context),
     );
   }
+}
+
+/// "Windows app" in an app's bar: the words when there is room, the icon alone when narrow
+class _WindowsAppButton extends StatelessWidget {
+  const _WindowsAppButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => MediaQuery.sizeOf(context).width < 760
+      ? IconButton(tooltip: 'Windows app', onPressed: onPressed, icon: const Icon(Icons.desktop_windows_outlined))
+      : OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.desktop_windows_outlined),
+          label: const Text('Windows app'),
+        );
 }
 
 /// For the Windows test (`SurveyToolkit.exe --preview=slope`): one web app inside the Toolkit's
@@ -509,12 +578,17 @@ class _WorkspacePreviewState extends State<WorkspacePreview> {
     home: Scaffold(
       body: Row(
         children: [
-          _Sidebar(page: workspaceApps.indexOf(_app) + 1, wide: true, onPick: (_) {}),
+          _Sidebar(
+            page: workspaceApps.indexOf(_app) + 1,
+            wide: true,
+            onPick: (_) {},
+            settingsPage: workspaceApps.length + 1,
+          ),
           const VerticalDivider(width: 1),
           Expanded(
             child: _app.native
-                ? _NativePanel(app: _app, view: folderManagerView(_app), switcher: null)
-                : _AppPanel(app: _app, view: _view!, model: null, switcher: null),
+                ? _NativePanel(app: _app, view: folderManagerView(_app))
+                : _AppPanel(app: _app, view: _view!, model: null),
           ),
         ],
       ),

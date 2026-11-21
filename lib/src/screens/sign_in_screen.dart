@@ -31,11 +31,11 @@ class SignInScreen extends StatelessWidget {
                     children: [
                       Center(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(12),
                           child: Image.asset(
                             'assets/brand/icon-512.png',
-                            width: 76,
-                            height: 76,
+                            width: 52,
+                            height: 52,
                             excludeFromSemantics: true,
                           ),
                         ),
@@ -44,13 +44,13 @@ class SignInScreen extends StatelessWidget {
                       Text(
                         appName,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+                        style: TextStyle(color: c.ink, fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: -0.2),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         appTagline,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: c.muted, fontSize: 15),
+                        style: TextStyle(color: c.muted, fontSize: 13.5),
                       ),
                       const SizedBox(height: 24),
                       if (account.checking)
