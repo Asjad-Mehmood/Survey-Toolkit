@@ -83,6 +83,8 @@ void main() {
     expect(find.text('Open'), findsNWidgets(2));
     // the rest is in each row's ⋯ menu
     expect(find.text('Uninstall'), findsNothing);
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('more slope')));
     await settle(t);
     expect(find.text('Web app'), findsOneWidget);
@@ -121,6 +123,8 @@ void main() {
     await settle(t);
     expect(find.text('Get the update'), findsOneWidget);
     expect(find.text('Get it'), findsNWidgets(4));
+    await t.ensureVisible(find.byKey(const ValueKey('more excel-to-kml')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('more excel-to-kml')));
     await settle(t);
     expect(find.text('Uninstall'), findsNothing);
@@ -150,6 +154,8 @@ void main() {
     );
     expect(installs.every((b) => b.onPressed == null), isTrue);
     // and Uninstall in the ⋯ menu is greyed out
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('more slope')));
     await t.pump(const Duration(milliseconds: 400));
     final uninstall = t.widget<PopupMenuItem<VoidCallback>>(
@@ -216,6 +222,8 @@ void main() {
     await settle(t);
     site.reports.clear();
 
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('more slope')));
     await settle(t);
     await t.tap(find.text('Uninstall'));
@@ -225,6 +233,8 @@ void main() {
     await settle(t);
     expect(installer.calls, isEmpty);
 
+    await t.ensureVisible(find.byKey(const ValueKey('more slope')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('more slope')));
     await settle(t);
     await t.tap(find.text('Uninstall'));

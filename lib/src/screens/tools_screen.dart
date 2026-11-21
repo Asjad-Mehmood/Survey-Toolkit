@@ -18,6 +18,7 @@ import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import '../update/auto_update.dart';
 import '../update/update_prefs.dart';
+import 'home_hero.dart';
 
 /// Which tools Home lists
 enum _Show { all, installed, updates }
@@ -402,7 +403,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// The top of Home: a welcome, the Toolkit's name and three figures, on a light background
+/// The top of Home: a welcome, the Toolkit's name and three figures on the left, on a light blue
+/// gradient; the survey scene on the right half, fading in, never behind the words
 class _Hero extends StatelessWidget {
   const _Hero({required this.model, required this.name});
   final ToolkitModel model;
@@ -419,9 +421,12 @@ class _Hero extends StatelessWidget {
     Widget figure(String label, String value, IconData icon, String id) => Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 18, 10),
       decoration: BoxDecoration(
-        color: c.card,
+        color: c.card.withValues(alpha: dark ? 0.75 : 0.92),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: c.line),
+        border: Border.all(color: dark ? c.line : Colors.white),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF1D3F8F).withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -449,44 +454,74 @@ class _Hero extends StatelessWidget {
       ),
     );
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
-      decoration: BoxDecoration(
-        color: dark ? c.card : const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(Sizes.panelRadius),
-        border: Border.all(color: c.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            first.isEmpty ? 'Welcome back' : 'Welcome back, $first',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.muted),
+    final words = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          first.isEmpty ? 'Welcome back' : 'Welcome back, $first',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.muted),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          appName,
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.6,
+            color: dark ? Colors.white : const Color(0xFF0B1A3A),
+            height: 1.15,
           ),
-          const SizedBox(height: 4),
-          Text(
-            appName,
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-              color: c.ink,
-              height: 1.15,
-            ),
+        ),
+        const SizedBox(height: 6),
+        Text('Every survey tool in one place, always up to date.', style: TextStyle(fontSize: 14, color: c.muted)),
+        const SizedBox(height: 20),
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          children: [
+            figure('Total tools', '${model.tools.length}', Icons.apps_rounded, 'traverse'),
+            figure('Updates', '$updates', Icons.system_update_alt_rounded, 'folder-manager'),
+            figure('Up to date', '$upToDate', Icons.check_rounded, 'excel-to-kml'),
+          ],
+        ),
+      ],
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Sizes.panelRadius + 4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: dark
+                ? [const Color(0xFF172036), const Color(0xFF1B2A4D)]
+                : [const Color(0xFFF7FAFF), const Color(0xFFE6EEFC)],
           ),
-          const SizedBox(height: 4),
-          Text('Every survey tool in one place, always up to date.', style: TextStyle(fontSize: 13.5, color: c.muted)),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              figure('Total tools', '${model.tools.length}', Icons.apps_rounded, 'traverse'),
-              figure('Updates', '$updates', Icons.system_update_alt_rounded, 'folder-manager'),
-              figure('Up to date', '$upToDate', Icons.check_rounded, 'excel-to-kml'),
-            ],
-          ),
-        ],
+          border: Border.all(color: dark ? const Color(0xFF26314A) : const Color(0xFFDCE5F7)),
+          borderRadius: BorderRadius.circular(Sizes.panelRadius + 4),
+        ),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // wide: the words on the left half, the scene on the right; narrow: the words alone
+            final wide = box.maxWidth >= 820 * MediaQuery.textScalerOf(context).scale(1);
+            return Stack(
+              children: [
+                // the scene on the right, fading in, never behind the words
+                if (wide) Positioned.fill(child: SurveyScene(dark: dark)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(30, 28, 30, 28),
+                  child: wide
+                      ? ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: box.maxWidth * 0.5),
+                          child: words,
+                        )
+                      : words,
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
