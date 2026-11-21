@@ -1,5 +1,5 @@
 // The look: a calm desktop program, like Windows 11. Grey page, white panels, thin lines, 13 px
-// Inter text, 32 px controls; the logo's navy for actions and its gold only for updates. JetBrains Mono
+// Inter text, 36 px controls; the logo's navy for actions and its gold only for updates. JetBrains Mono
 // for versions and codes. Both fonts ship inside the app, so it looks the same offline.
 import 'package:flutter/material.dart';
 
@@ -101,7 +101,7 @@ Color highlightColour(Brightness b) => b == Brightness.light ? const Color(0xFF2
 
 /// Sizes every screen uses: a desktop program for a mouse, not a phone
 abstract final class Sizes {
-  static const control = 32.0;
+  static const control = 36.0;
   static const radius = 8.0;
   static const panelRadius = 16.0;
   static const header = 48.0;
@@ -219,7 +219,7 @@ ThemeData buildTheme(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: buttonSize,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         shape: pill,
         textStyle: buttonText,
         iconSize: 16,
@@ -228,7 +228,7 @@ ThemeData buildTheme(Brightness brightness) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: buttonSize,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         foregroundColor: c.ink,
         backgroundColor: c.card,
         side: BorderSide(color: c.line),
@@ -240,7 +240,7 @@ ThemeData buildTheme(Brightness brightness) {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         minimumSize: buttonSize,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         foregroundColor: c.ink,
         shape: shape,
         textStyle: buttonText,
@@ -259,8 +259,8 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        minimumSize: const Size(32, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        minimumSize: const Size(36, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         textStyle: const TextStyle(fontFamily: textFont, fontSize: 12.5, fontWeight: FontWeight.w500),
         foregroundColor: c.ink,
         selectedForegroundColor: brightness == Brightness.light ? Colors.white : BrandColors.navy,
