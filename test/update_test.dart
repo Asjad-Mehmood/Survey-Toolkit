@@ -323,14 +323,16 @@ void main() {
       final h = Harness(site: FakeSite(), store: signedInStore());
       await t.pumpWidget(h.app);
       await settle(t);
+      // Excel to KML's row on Home says when it updates
+      expect(find.text('Updates by itself the next time you open it from the Toolkit.'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('workspace Settings')));
+      await settle(t);
       expect(find.text('Updates'), findsOneWidget);
       // installed on the typical PC: Excel to KML and Slope Calculator
       expect(find.byKey(const ValueKey('mode excel-to-kml')), findsOneWidget);
       expect(find.byKey(const ValueKey('mode slope')), findsOneWidget);
       expect(find.byKey(const ValueKey('mode roadpro')), findsNothing);
       expect(find.text('When you open it from the Toolkit'), findsOneWidget);
-      // Excel to KML's card says when it updates
-      expect(find.text('Updates by itself the next time you open it from the Toolkit.'), findsOneWidget);
       expect(h.installer is FakeInstaller && (h.installer! as FakeInstaller).calls.isEmpty, isTrue);
 
       final ask = find.descendant(of: find.byKey(const ValueKey('mode excel-to-kml')), matching: find.text('Ask me'));
@@ -339,7 +341,6 @@ void main() {
       await settle(t);
       expect(h.model.updates.modeOf('excel-to-kml'), UpdateMode.ask);
       expect(UpdatePrefs(h.store).modeOf('excel-to-kml'), UpdateMode.ask);
-      expect(find.text('Updates by itself the next time you open it from the Toolkit.'), findsNothing);
 
       final toggle = find.byKey(const ValueKey('background switch'));
       await t.ensureVisible(toggle);
@@ -348,6 +349,9 @@ void main() {
       expect(h.startup.on, isTrue);
       expect(h.tray.kept, isTrue);
       expect(find.textContaining('Closing the window keeps the Toolkit in the tray'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      expect(find.text('Updates by itself the next time you open it from the Toolkit.'), findsNothing);
     });
 
     testWidgets('Check again updates what is set to Automatic', (t) async {
@@ -366,7 +370,7 @@ void main() {
       // on start
       expect(installer.calls, ['install slope']);
       expect(h.tray.notes, ['Survey Toolkit: Slope Calculator updated to 1.0.3']);
-      await t.tap(find.byTooltip('Check again'));
+      await t.tap(find.text('Check for updates'));
       await settle(t);
       expect(installer.calls, ['install slope', 'install slope']);
     });

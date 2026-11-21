@@ -112,6 +112,7 @@ class _SignInCardState extends State<SignInCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SegmentedButton<_Step>(
+            showSelectedIcon: false,
             segments: const [
               ButtonSegment(value: _Step.signIn, label: Text('Sign in')),
               ButtonSegment(value: _Step.register, label: Text('Create an account')),

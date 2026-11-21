@@ -102,7 +102,7 @@ void main() {
 
     testWidgets('is in the sidebar and lists the AutoCAD products', (t) async {
       final h = await open(t);
-      expect(find.text('START AUTOCAD'), findsOneWidget);
+      expect(find.text('Start AutoCAD'), findsOneWidget);
       expect(find.text('Autodesk Civil 3D 2024'), findsOneWidget);
       expect(find.text('Too old for RoadPro'), findsOneWidget);
       // RoadPro isn't installed on the typical PC: it says to install it first

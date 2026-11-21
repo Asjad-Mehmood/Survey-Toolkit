@@ -230,6 +230,24 @@ class ToolkitModel extends ChangeNotifier {
     unawaited(report());
   }
 
+  // ------------------------------------------------------------------ recent activity
+
+  static const _activityKey = 'activity';
+
+  /// What the Toolkit did on this PC, newest first (installs, updates, removals), for Home's
+  /// Recent activity. Kept on this PC, the last 30.
+  List<ActivityEntry> get activity => [
+    for (final e in (store.readJson(_activityKey)?['items'] as List?) ?? const []) ?ActivityEntry.from(e),
+  ];
+
+  void _log(FeedTool t, String action, String? version) {
+    final items = [
+      ActivityEntry(toolId: t.id, name: t.name, action: action, version: version, at: DateTime.now()).toJson(),
+      for (final a in activity.take(29)) a.toJson(),
+    ];
+    store.writeJson(_activityKey, {'items': items});
+  }
+
   // ------------------------------------------------------------------ install, update, uninstall
 
   /// The tool with a job running, and how far it is
@@ -322,7 +340,46 @@ class ToolkitModel extends ChangeNotifier {
     jobProgress = null;
     notifyListeners();
     // a tool that was open: nothing happened, nothing to report
-    if (!r.blocked) unawaited(report(events: [event(r)]));
+    if (!r.blocked) {
+      final e = event(r);
+      _log(t, e['action']! as String, (e['to'] as String?) ?? (e['from'] as String?));
+      unawaited(report(events: [e]));
+    }
     return r;
   }
+}
+
+/// One line of Recent activity: a tool, what happened (installed, updated, uninstalled, failed),
+/// the version and when
+@immutable
+class ActivityEntry {
+  const ActivityEntry({required this.toolId, required this.name, required this.action, required this.at, this.version});
+  final String toolId;
+  final String name;
+  final String action;
+  final String? version;
+  final DateTime at;
+
+  static ActivityEntry? from(Object? j) {
+    if (j is! Map) return null;
+    final at = DateTime.tryParse('${j['at']}');
+    final id = j['tool'], name = j['name'], action = j['action'];
+    if (at == null || id is! String || name is! String || action is! String) return null;
+    final v = j['version'];
+    return ActivityEntry(
+      toolId: id,
+      name: name,
+      action: action,
+      at: at,
+      version: v is String && v.isNotEmpty ? v : null,
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'tool': toolId,
+    'name': name,
+    'action': action,
+    'at': at.toIso8601String(),
+    if (version != null) 'version': version,
+  };
 }

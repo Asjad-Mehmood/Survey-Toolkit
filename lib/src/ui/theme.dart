@@ -1,4 +1,5 @@
-// The look: the logo's navy and survey gold, light and dark, Inter for text and JetBrains Mono
+// The look: a calm desktop program, like Windows 11. Grey page, white panels, thin lines, 13 px
+// Inter text, 36 px controls; the logo's navy for actions and its gold only for updates. JetBrains Mono
 // for versions and codes. Both fonts ship inside the app, so it looks the same offline.
 import 'package:flutter/material.dart';
 
@@ -43,32 +44,34 @@ class ToolkitColors extends ThemeExtension<ToolkitColors> {
   final Color heroStart;
   final Color heroEnd;
 
+  // Calm desktop surfaces, like Windows 11: grey page, white panels, thin lines. Navy is the one
+  // action colour; gold only marks an update.
   static const light = ToolkitColors(
-    background: Color(0xFFF3F5F9),
+    background: Color(0xFFF3F5FC),
     card: Color(0xFFFFFFFF),
-    cardSoft: Color(0xFFF6F8FB),
-    line: Color(0xFFE1E6EF),
-    ink: Color(0xFF0E1B33),
-    muted: Color(0xFF5A6A85),
-    accent: Color(0xFFE2AE34),
+    cardSoft: Color(0xFFEEF2FB),
+    line: Color(0xFFE5E9F3),
+    ink: Color(0xFF0F1B33),
+    muted: Color(0xFF5F6B85),
+    accent: Color(0xFFD9A62E),
     onAccent: Color(0xFF1B1405),
-    rise: Color(0xFF1C7C4A),
-    fall: Color(0xFFB4442F),
+    rise: Color(0xFF1E7B47),
+    fall: Color(0xFFB3402A),
     heroStart: BrandColors.navy,
     heroEnd: BrandColors.navyLight,
   );
 
   static const dark = ToolkitColors(
-    background: Color(0xFF0A1322),
-    card: Color(0xFF111D33),
-    cardSoft: Color(0xFF16253F),
-    line: Color(0xFF233657),
-    ink: Color(0xFFEDF2FA),
-    muted: Color(0xFF98A9C6),
+    background: Color(0xFF111522),
+    card: Color(0xFF1A1F2E),
+    cardSoft: Color(0xFF222839),
+    line: Color(0xFF2C3346),
+    ink: Color(0xFFE7E9ED),
+    muted: Color(0xFF9AA0AB),
     accent: BrandColors.gold,
     onAccent: Color(0xFF1B1405),
-    rise: Color(0xFF5CCB8F),
-    fall: Color(0xFFF08A73),
+    rise: Color(0xFF5BC48B),
+    fall: Color(0xFFEE8670),
     heroStart: Color(0xFF17386B),
     heroEnd: Color(0xFF1F4C8F),
   );
@@ -90,48 +93,109 @@ const readingFont = 'JetBrainsMono';
 /// Numbers that line up in columns
 const tabular = [FontFeature.tabularFigures()];
 
+/// The navy of buttons and the selected item (lighter in dark mode, to read on dark grey)
+Color actionColour(Brightness b) => b == Brightness.light ? const Color(0xFF1D3F8F) : const Color(0xFF8DB4F5);
+
+/// The bright blue of the selected page, links and small highlights
+Color highlightColour(Brightness b) => b == Brightness.light ? const Color(0xFF2563EB) : const Color(0xFF7AA7FF);
+
+/// Sizes every screen uses: a desktop program for a mouse, not a phone
+abstract final class Sizes {
+  static const control = 36.0;
+  static const radius = 8.0;
+  static const panelRadius = 16.0;
+  static const header = 48.0;
+}
+
 ThemeData buildTheme(Brightness brightness) {
   final c = brightness == Brightness.light ? ToolkitColors.light : ToolkitColors.dark;
+  final action = actionColour(brightness);
   final scheme = ColorScheme.fromSeed(seedColor: BrandColors.navyLight, brightness: brightness).copyWith(
-    primary: brightness == Brightness.light ? BrandColors.navyLight : const Color(0xFF8DB4F5),
+    primary: action,
     onPrimary: brightness == Brightness.light ? Colors.white : BrandColors.navy,
     secondary: c.accent,
     onSecondary: c.onAccent,
     surface: c.card,
     onSurface: c.ink,
     onSurfaceVariant: c.muted,
+    surfaceContainerHighest: c.cardSoft,
     outline: c.line,
     outlineVariant: c.line,
     error: c.fall,
   );
 
-  final base = ThemeData(colorScheme: scheme, useMaterial3: true, fontFamily: textFont, brightness: brightness);
-  final text = base.textTheme.apply(bodyColor: c.ink, displayColor: c.ink);
-  final radius = BorderRadius.circular(12);
+  final base = ThemeData(
+    colorScheme: scheme,
+    useMaterial3: true,
+    fontFamily: textFont,
+    brightness: brightness,
+    visualDensity: VisualDensity.compact,
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    // a mouse program: a quiet hover, no ink ripples
+    splashFactory: NoSplash.splashFactory,
+    hoverColor: c.ink.withValues(alpha: 0.05),
+    highlightColor: c.ink.withValues(alpha: 0.08),
+    focusColor: action.withValues(alpha: 0.14),
+  );
+  TextStyle t(double size, FontWeight w, {double? height, double spacing = 0}) => TextStyle(
+    fontFamily: textFont,
+    fontSize: size,
+    fontWeight: w,
+    height: height,
+    letterSpacing: spacing,
+    color: c.ink,
+  );
+  final text = base.textTheme
+      .copyWith(
+        headlineSmall: t(20, FontWeight.w600, spacing: -0.2),
+        titleLarge: t(17, FontWeight.w600, spacing: -0.1),
+        titleMedium: t(14, FontWeight.w600),
+        titleSmall: t(13, FontWeight.w600),
+        bodyLarge: t(14, FontWeight.w400, height: 1.45),
+        bodyMedium: t(13, FontWeight.w400, height: 1.45),
+        bodySmall: t(12, FontWeight.w400, height: 1.4),
+        labelLarge: t(13, FontWeight.w500),
+        labelMedium: t(12, FontWeight.w500),
+        labelSmall: t(11, FontWeight.w500),
+      )
+      .apply(bodyColor: c.ink, displayColor: c.ink);
+  final radius = BorderRadius.circular(Sizes.radius);
+  final shape = RoundedRectangleBorder(borderRadius: radius);
+  const pill = StadiumBorder();
+  const buttonText = TextStyle(fontFamily: textFont, fontWeight: FontWeight.w500, fontSize: 13);
+  const buttonSize = Size(32, Sizes.control);
 
   return base.copyWith(
     scaffoldBackgroundColor: c.background,
     extensions: [c],
-    textTheme: text.copyWith(
-      headlineSmall: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3),
-      titleLarge: text.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
-      titleMedium: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      labelLarge: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-    ),
+    textTheme: text,
+    iconTheme: IconThemeData(color: c.ink, size: 18),
     dividerTheme: DividerThemeData(color: c.line, space: 1, thickness: 1),
     cardTheme: CardThemeData(
       color: c.card,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Sizes.panelRadius),
         side: BorderSide(color: c.line),
       ),
     ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: c.card,
+      foregroundColor: c.ink,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: Sizes.header,
+      titleTextStyle: t(14, FontWeight.w600),
+      iconTheme: IconThemeData(color: c.ink, size: 18),
+      actionsIconTheme: IconThemeData(color: c.ink, size: 18),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: c.cardSoft,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      fillColor: c.card,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: radius,
         borderSide: BorderSide(color: c.line),
@@ -142,53 +206,136 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide(color: c.accent, width: 2),
+        borderSide: BorderSide(color: action, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide(color: c.fall, width: 1.5),
+        borderSide: BorderSide(color: c.fall),
       ),
-      labelStyle: TextStyle(color: c.muted, fontWeight: FontWeight.w500),
-      floatingLabelStyle: TextStyle(color: c.ink, fontWeight: FontWeight.w600),
+      labelStyle: TextStyle(color: c.muted, fontSize: 13),
+      floatingLabelStyle: TextStyle(color: c.ink, fontSize: 13, fontWeight: FontWeight.w500),
+      hintStyle: TextStyle(color: c.muted, fontSize: 13),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(44, 46),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        shape: RoundedRectangleBorder(borderRadius: radius),
-        textStyle: const TextStyle(fontFamily: textFont, fontWeight: FontWeight.w600, fontSize: 14.5),
+        minimumSize: buttonSize,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        shape: pill,
+        textStyle: buttonText,
+        iconSize: 16,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(44, 46),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        minimumSize: buttonSize,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         foregroundColor: c.ink,
+        backgroundColor: c.card,
         side: BorderSide(color: c.line),
-        shape: RoundedRectangleBorder(borderRadius: radius),
-        textStyle: const TextStyle(fontFamily: textFont, fontWeight: FontWeight.w600, fontSize: 14.5),
+        shape: pill,
+        textStyle: buttonText,
+        iconSize: 16,
       ),
     ),
-    iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(minimumSize: const Size(44, 44))),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        minimumSize: buttonSize,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        foregroundColor: c.ink,
+        shape: shape,
+        textStyle: buttonText,
+        iconSize: 16,
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: buttonSize,
+        fixedSize: buttonSize,
+        padding: EdgeInsets.zero,
+        iconSize: 18,
+        foregroundColor: c.ink,
+        shape: shape,
+      ),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        minimumSize: const Size(36, 36),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        textStyle: const TextStyle(fontFamily: textFont, fontSize: 12.5, fontWeight: FontWeight.w500),
+        foregroundColor: c.ink,
+        selectedForegroundColor: brightness == Brightness.light ? Colors.white : BrandColors.navy,
+        selectedBackgroundColor: action,
+        side: BorderSide(color: c.line),
+        shape: pill,
+        visualDensity: VisualDensity.compact,
+      ),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : c.muted),
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? action : c.cardSoft),
+      trackOutlineColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? action : c.line),
+    ),
+    listTileTheme: ListTileThemeData(
+      dense: true,
+      titleTextStyle: t(13, FontWeight.w500),
+      subtitleTextStyle: TextStyle(fontFamily: textFont, fontSize: 12, color: c.muted, height: 1.4),
+    ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: c.cardSoft,
-      selectedColor: c.accent,
+      selectedColor: action,
       side: BorderSide(color: c.line),
-      labelStyle: TextStyle(fontFamily: textFont, fontWeight: FontWeight.w600, color: c.ink),
-      secondaryLabelStyle: TextStyle(fontFamily: textFont, fontWeight: FontWeight.w700, color: c.onAccent),
-      shape: const StadiumBorder(),
+      labelStyle: TextStyle(fontFamily: textFont, fontSize: 12.5, fontWeight: FontWeight.w500, color: c.ink),
+      secondaryLabelStyle: const TextStyle(
+        fontFamily: textFont,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
+      ),
+      shape: shape,
       showCheckmark: false,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: c.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.25),
+      menuPadding: const EdgeInsets.symmetric(vertical: 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Sizes.panelRadius),
+        side: BorderSide(color: c.line),
+      ),
+      textStyle: t(13, FontWeight.w400),
+      labelTextStyle: WidgetStatePropertyAll(t(13, FontWeight.w400)),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.card,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      titleTextStyle: t(16, FontWeight.w600),
+      contentTextStyle: TextStyle(fontFamily: textFont, fontSize: 13, height: 1.5, color: c.ink),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: action, linearTrackColor: c.cardSoft),
+    scrollbarTheme: ScrollbarThemeData(
+      thickness: const WidgetStatePropertyAll(6),
+      radius: const Radius.circular(3),
+      thumbColor: WidgetStatePropertyAll(c.muted.withValues(alpha: 0.35)),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: BrandColors.navy,
-      contentTextStyle: const TextStyle(fontFamily: textFont, color: Colors.white, fontWeight: FontWeight.w500),
-      shape: RoundedRectangleBorder(borderRadius: radius),
+      backgroundColor: brightness == Brightness.light ? const Color(0xFF23272F) : const Color(0xFF3A3F49),
+      contentTextStyle: const TextStyle(fontFamily: textFont, color: Colors.white, fontSize: 13),
+      shape: shape,
+      width: 420,
     ),
     tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(color: BrandColors.navy, borderRadius: BorderRadius.circular(8)),
-      textStyle: const TextStyle(fontFamily: textFont, color: Colors.white, fontSize: 12.5),
+      waitDuration: const Duration(milliseconds: 500),
+      decoration: BoxDecoration(
+        color: brightness == Brightness.light ? const Color(0xFF23272F) : const Color(0xFF3A3F49),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      textStyle: const TextStyle(fontFamily: textFont, color: Colors.white, fontSize: 12),
     ),
   );
 }

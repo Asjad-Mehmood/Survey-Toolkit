@@ -56,13 +56,13 @@ void main() {
     if (before != null) await before();
     final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     await t.runAsync(() async {
-      final image = await boundary.toImage(pixelRatio: 1);
+      final image = await boundary.toImage(pixelRatio: 2);
       final png = await image.toByteData(format: ui.ImageByteFormat.png);
       File('$_dir/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
     });
   }
 
-  const desktop = Size(1180, 900);
+  const desktop = Size(1440, 900);
   testWidgets('screens', (t) async {
     // real soft shadows, as in the program (tests draw them as black lines otherwise)
     debugDisableShadows = false;
@@ -120,11 +120,11 @@ void main() {
 
     await shot(
       t,
-      '9-app-grid',
+      '9-more-menu',
       Harness(site: FakeSite(), store: signedInStore()),
       desktop,
       before: () async {
-        await t.tap(find.byTooltip('Switch app'));
+        await t.tap(find.byKey(const ValueKey('more excel-to-kml')));
         await settle(t);
       },
     );
@@ -145,11 +145,11 @@ void main() {
     final bg = Harness(site: FakeSite(), store: signedInStore())..startup.on = true;
     await shot(
       t,
-      '10-updates',
+      '10-settings',
       bg,
       desktop,
       before: () async {
-        await t.ensureVisible(find.byKey(const ValueKey('mode slope')));
+        await t.tap(find.byKey(const ValueKey('workspace Settings')));
         await settle(t);
       },
     );
