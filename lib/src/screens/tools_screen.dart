@@ -18,7 +18,6 @@ import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import '../update/auto_update.dart';
 import '../update/update_prefs.dart';
-import 'home_hero.dart';
 
 /// Which tools Home lists
 enum _Show { all, installed, updates }
@@ -403,7 +402,7 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// The banner at the top of Home: a welcome, the Toolkit's name, three figures and the survey scene
+/// The top of Home: a welcome, the Toolkit's name and three figures, on a light background
 class _Hero extends StatelessWidget {
   const _Hero({required this.model, required this.name});
   final ToolkitModel model;
@@ -416,17 +415,13 @@ class _Hero extends StatelessWidget {
     final updates = model.countIn(ToolState.updateAvailable);
     final upToDate = model.countIn(ToolState.upToDate);
     final first = (name ?? '').split(' ').first;
-    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     Widget figure(String label, String value, IconData icon, String id) => Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 18, 10),
       decoration: BoxDecoration(
-        color: (dark ? const Color(0xFF1A2236) : Colors.white).withValues(alpha: dark ? 0.7 : 0.78),
+        color: c.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.06 : 0.9)),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFF1D3F8F).withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
+        border: Border.all(color: c.line),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -454,80 +449,44 @@ class _Hero extends StatelessWidget {
       ),
     );
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: dark
-                ? [const Color(0xFF172036), const Color(0xFF1B2A4D), const Color(0xFF21305A)]
-                : [const Color(0xFFF2F6FF), const Color(0xFFE3ECFC), const Color(0xFFD5E2FA)],
+    return Container(
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+      decoration: BoxDecoration(
+        color: dark ? c.card : const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(Sizes.panelRadius),
+        border: Border.all(color: c.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            first.isEmpty ? 'Welcome back' : 'Welcome back, $first',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c.muted),
           ),
-          border: Border.all(color: dark ? const Color(0xFF26314A) : const Color(0xFFDCE5F7)),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Stack(
-          children: [
-            if (wide) Positioned.fill(child: SurveyScene(dark: dark)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(30, 26, 30, 26),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: (dark ? Colors.white : const Color(0xFFFFF4D6)).withValues(alpha: dark ? 0.08 : 1),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.waving_hand_rounded, size: 15, color: Color(0xFFF2A93B)),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            first.isEmpty ? 'Welcome back!' : 'Welcome back, $first!',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: c.ink),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    appName,
-                    style: TextStyle(
-                      fontSize: wide ? 36 : 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
-                      color: dark ? Colors.white : const Color(0xFF0B1A3A),
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Powerful tools for your surveying and mapping work.',
-                    style: TextStyle(fontSize: 14, color: c.muted),
-                  ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      figure('Total tools', '${model.tools.length}', Icons.apps_rounded, 'traverse'),
-                      figure('Updates', '$updates', Icons.system_update_alt_rounded, 'folder-manager'),
-                      figure('Up to date', '$upToDate', Icons.check_rounded, 'excel-to-kml'),
-                    ],
-                  ),
-                ],
-              ),
+          const SizedBox(height: 4),
+          Text(
+            appName,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              color: c.ink,
+              height: 1.15,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text('Every survey tool in one place, always up to date.', style: TextStyle(fontSize: 13.5, color: c.muted)),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              figure('Total tools', '${model.tools.length}', Icons.apps_rounded, 'traverse'),
+              figure('Updates', '$updates', Icons.system_update_alt_rounded, 'folder-manager'),
+              figure('Up to date', '$upToDate', Icons.check_rounded, 'excel-to-kml'),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -543,7 +502,6 @@ class _UpdatesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final waiting = [
       for (final t in model.tools)
         if (model.stateOfTool(t) == ToolState.updateAvailable) t,
@@ -569,36 +527,16 @@ class _UpdatesCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Sizes.panelRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? [const Color(0xFF1F2440), const Color(0xFF29224A)]
-              : [const Color(0xFFEEF0FF), const Color(0xFFE6E4FB)],
-        ),
-        border: Border.all(color: dark ? const Color(0xFF30355A) : const Color(0xFFDCDDF7)),
+        color: c.card,
+        border: Border.all(color: c.line),
+        boxShadow: softShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.rocket_launch_rounded, size: 22, color: Colors.white),
-              ),
+              const AppIcon(id: 'toolkit', icon: Icons.rocket_launch_rounded, size: 44),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -724,14 +662,8 @@ class _ActivityLine extends StatelessWidget {
             Container(
               width: size,
               height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [item.colour.withValues(alpha: 0.85), item.colour]),
-                boxShadow: [
-                  BoxShadow(color: item.colour.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
-                ],
-              ),
-              child: Icon(item.icon, size: compact ? 14 : 17, color: Colors.white),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: item.colour.withValues(alpha: 0.11)),
+              child: Icon(item.icon, size: compact ? 14 : 17, color: item.colour),
             ),
             const SizedBox(width: 12),
             Expanded(

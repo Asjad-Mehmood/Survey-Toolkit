@@ -337,10 +337,11 @@ class Notice extends StatelessWidget {
   'folder-manager' => (const Color(0xFFD97706), const Color(0xFFFBBF24)),
   'slope' => (const Color(0xFF0891B2), const Color(0xFF22D3EE)),
   'auto-draft' => (const Color(0xFF7C3AED), const Color(0xFFA78BFA)),
+  'toolkit' => (const Color(0xFF2563EB), const Color(0xFF60A5FA)),
   _ => (const Color(0xFF475569), const Color(0xFF94A3B8)),
 };
 
-/// A tool's icon: white on its own colours, glossy, with a soft coloured shadow
+/// A tool's icon: drawn in the tool's colour on a very light tint of it
 class AppIcon extends StatelessWidget {
   const AppIcon({super.key, required this.id, required this.icon, this.size = 40});
   final String id;
@@ -349,42 +350,16 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (a, b) = toolColours(id);
-    final r = BorderRadius.circular(size * 0.28);
+    final (a, _) = toolColours(id);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [b, a]),
-        borderRadius: r,
-        boxShadow: [
-          BoxShadow(
-            color: a.withValues(alpha: size >= 28 ? 0.32 : 0.22),
-            blurRadius: size * 0.35,
-            offset: Offset(0, size * 0.1),
-          ),
-        ],
+        color: a.withValues(alpha: dark ? 0.18 : 0.09),
+        borderRadius: BorderRadius.circular(size * 0.28),
       ),
-      child: Stack(
-        children: [
-          // the gloss on the top half
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: r,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.center,
-                  colors: [Colors.white.withValues(alpha: 0.32), Colors.white.withValues(alpha: 0)],
-                ),
-              ),
-            ),
-          ),
-          Center(
-            child: Icon(icon, size: size * 0.52, color: Colors.white),
-          ),
-        ],
-      ),
+      child: Icon(icon, size: size * 0.5, color: dark ? Color.lerp(a, Colors.white, 0.35) : a),
     );
   }
 }
