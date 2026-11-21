@@ -122,7 +122,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final c = context.colors;
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final pages = <Widget>[
-      ToolsScreen(model: widget.model, auto: widget.auto, userName: widget.account.user?.display),
+      ToolsScreen(
+        model: widget.model,
+        auto: widget.auto,
+        userName: widget.account.user?.display,
+        settings: widget.settings,
+      ),
       for (final app in workspaceApps)
         if (app.native)
           _nativeOpen[app.id] == null ? const SizedBox.shrink() : _NativePanel(app: app, view: _nativeOpen[app.id]!)
@@ -178,8 +183,8 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      width: wide ? 236 : 60,
-      color: c.cardSoft,
+      width: wide ? 248 : 64,
+      color: c.card,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -293,7 +298,6 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final action = actionColour(Theme.of(context).brightness);
     final item = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
       child: Semantics(
@@ -302,9 +306,8 @@ class _NavItem extends StatelessWidget {
         label: name,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: on ? c.card : Colors.transparent,
-            borderRadius: BorderRadius.circular(Sizes.radius),
-            boxShadow: on ? softShadow(context) : null,
+            color: on ? highlightColour(Theme.of(context).brightness).withValues(alpha: 0.10) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Material(
             type: MaterialType.transparency,
@@ -314,7 +317,7 @@ class _NavItem extends StatelessWidget {
               onTap: onTap,
               child: ExcludeSemantics(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 36),
+                  constraints: const BoxConstraints(minHeight: 42),
                   child: Row(
                     mainAxisAlignment: wide ? MainAxisAlignment.start : MainAxisAlignment.center,
                     children: [
@@ -325,12 +328,15 @@ class _NavItem extends StatelessWidget {
                           width: 3,
                           height: on ? 16 : 0,
                           margin: const EdgeInsets.only(right: 9),
-                          decoration: BoxDecoration(color: action, borderRadius: BorderRadius.circular(2)),
+                          decoration: BoxDecoration(
+                            color: highlightColour(Theme.of(context).brightness),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       if (appId != null)
-                        AppIcon(id: appId!, icon: icon, size: 22)
+                        AppIcon(id: appId!, icon: icon, size: 26)
                       else
-                        Icon(icon, size: 18, color: on ? action : c.muted),
+                        Icon(icon, size: 20, color: on ? highlightColour(Theme.of(context).brightness) : c.muted),
                       if (wide) ...[
                         const SizedBox(width: 10),
                         Expanded(
@@ -338,9 +344,9 @@ class _NavItem extends StatelessWidget {
                             name,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.5,
                               fontWeight: on ? FontWeight.w600 : FontWeight.w500,
-                              color: c.ink,
+                              color: on ? highlightColour(Theme.of(context).brightness) : c.ink,
                             ),
                           ),
                         ),

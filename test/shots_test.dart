@@ -62,7 +62,7 @@ void main() {
     });
   }
 
-  const desktop = Size(1280, 800);
+  const desktop = Size(1440, 900);
   testWidgets('screens', (t) async {
     // real soft shadows, as in the program (tests draw them as black lines otherwise)
     debugDisableShadows = false;

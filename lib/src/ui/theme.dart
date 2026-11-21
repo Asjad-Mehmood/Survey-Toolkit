@@ -47,12 +47,12 @@ class ToolkitColors extends ThemeExtension<ToolkitColors> {
   // Calm desktop surfaces, like Windows 11: grey page, white panels, thin lines. Navy is the one
   // action colour; gold only marks an update.
   static const light = ToolkitColors(
-    background: Color(0xFFF6F7FB),
+    background: Color(0xFFF3F5FC),
     card: Color(0xFFFFFFFF),
-    cardSoft: Color(0xFFEFF2F7),
-    line: Color(0xFFE4E7EE),
-    ink: Color(0xFF1A1D23),
-    muted: Color(0xFF5E6573),
+    cardSoft: Color(0xFFEEF2FB),
+    line: Color(0xFFE5E9F3),
+    ink: Color(0xFF0F1B33),
+    muted: Color(0xFF5F6B85),
     accent: Color(0xFFD9A62E),
     onAccent: Color(0xFF1B1405),
     rise: Color(0xFF1E7B47),
@@ -62,10 +62,10 @@ class ToolkitColors extends ThemeExtension<ToolkitColors> {
   );
 
   static const dark = ToolkitColors(
-    background: Color(0xFF16181D),
-    card: Color(0xFF1E2128),
-    cardSoft: Color(0xFF262A32),
-    line: Color(0xFF30343D),
+    background: Color(0xFF111522),
+    card: Color(0xFF1A1F2E),
+    cardSoft: Color(0xFF222839),
+    line: Color(0xFF2C3346),
     ink: Color(0xFFE7E9ED),
     muted: Color(0xFF9AA0AB),
     accent: BrandColors.gold,
@@ -94,13 +94,16 @@ const readingFont = 'JetBrainsMono';
 const tabular = [FontFeature.tabularFigures()];
 
 /// The navy of buttons and the selected item (lighter in dark mode, to read on dark grey)
-Color actionColour(Brightness b) => b == Brightness.light ? BrandColors.navyLight : const Color(0xFF8DB4F5);
+Color actionColour(Brightness b) => b == Brightness.light ? const Color(0xFF1D3F8F) : const Color(0xFF8DB4F5);
+
+/// The bright blue of the selected page, links and small highlights
+Color highlightColour(Brightness b) => b == Brightness.light ? const Color(0xFF2563EB) : const Color(0xFF7AA7FF);
 
 /// Sizes every screen uses: a desktop program for a mouse, not a phone
 abstract final class Sizes {
   static const control = 32.0;
   static const radius = 8.0;
-  static const panelRadius = 12.0;
+  static const panelRadius = 16.0;
   static const header = 48.0;
 }
 
@@ -158,9 +161,9 @@ ThemeData buildTheme(Brightness brightness) {
       .apply(bodyColor: c.ink, displayColor: c.ink);
   final radius = BorderRadius.circular(Sizes.radius);
   final shape = RoundedRectangleBorder(borderRadius: radius);
+  const pill = StadiumBorder();
   const buttonText = TextStyle(fontFamily: textFont, fontWeight: FontWeight.w500, fontSize: 13);
   const buttonSize = Size(32, Sizes.control);
-  const buttonPadding = EdgeInsets.symmetric(horizontal: 12);
 
   return base.copyWith(
     scaffoldBackgroundColor: c.background,
@@ -216,8 +219,8 @@ ThemeData buildTheme(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: buttonSize,
-        padding: buttonPadding,
-        shape: shape,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        shape: pill,
         textStyle: buttonText,
         iconSize: 16,
       ),
@@ -225,11 +228,11 @@ ThemeData buildTheme(Brightness brightness) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: buttonSize,
-        padding: buttonPadding,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         foregroundColor: c.ink,
         backgroundColor: c.card,
         side: BorderSide(color: c.line),
-        shape: shape,
+        shape: pill,
         textStyle: buttonText,
         iconSize: 16,
       ),
@@ -256,14 +259,14 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        minimumSize: const Size(32, 30),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        minimumSize: const Size(32, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         textStyle: const TextStyle(fontFamily: textFont, fontSize: 12.5, fontWeight: FontWeight.w500),
         foregroundColor: c.ink,
         selectedForegroundColor: brightness == Brightness.light ? Colors.white : BrandColors.navy,
         selectedBackgroundColor: action,
         side: BorderSide(color: c.line),
-        shape: shape,
+        shape: pill,
         visualDensity: VisualDensity.compact,
       ),
     ),

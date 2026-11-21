@@ -144,10 +144,10 @@ class Tag extends StatelessWidget {
     final c = context.colors;
     final dot = color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: dot == null ? c.cardSoft : dot.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
+        color: dot == null ? c.cardSoft : dot.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -340,7 +340,7 @@ class Notice extends StatelessWidget {
   _ => (const Color(0xFF475569), const Color(0xFF94A3B8)),
 };
 
-/// A tool's icon: white on its own colours, with a soft shadow
+/// A tool's icon: white on its own colours, glossy, with a soft coloured shadow
 class AppIcon extends StatelessWidget {
   const AppIcon({super.key, required this.id, required this.icon, this.size = 40});
   final String id;
@@ -350,17 +350,41 @@ class AppIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (a, b) = toolColours(id);
+    final r = BorderRadius.circular(size * 0.28);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [a, b]),
-        borderRadius: BorderRadius.circular(size * 0.26),
-        boxShadow: size >= 28
-            ? [BoxShadow(color: a.withValues(alpha: 0.28), blurRadius: size * 0.3, offset: Offset(0, size * 0.08))]
-            : null,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [b, a]),
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(
+            color: a.withValues(alpha: size >= 28 ? 0.32 : 0.22),
+            blurRadius: size * 0.35,
+            offset: Offset(0, size * 0.1),
+          ),
+        ],
       ),
-      child: Icon(icon, size: size * 0.5, color: Colors.white),
+      child: Stack(
+        children: [
+          // the gloss on the top half
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: r,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.center,
+                  colors: [Colors.white.withValues(alpha: 0.32), Colors.white.withValues(alpha: 0)],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Icon(icon, size: size * 0.52, color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 }
