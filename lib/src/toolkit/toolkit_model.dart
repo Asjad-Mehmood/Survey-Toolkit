@@ -21,8 +21,21 @@ import 'feed.dart';
 import 'installer.dart';
 import 'status.dart';
 
+/// Starts a program on its own, in [folder], with [args]
+typedef ProgramStarter = Future<void> Function(String program, List<String> args, String folder);
+
+/// The programs with a sign-in of their own: opened from the Toolkit, they are given a one-use code
+/// for the Toolkit's account (`--signin-code=`), so the user signs in once
+const signsInFromToolkit = {'excel-to-kml', 'traverse', 'slope', 'auto-draft'};
+
 class ToolkitModel extends ChangeNotifier {
-  ToolkitModel({required this.account, required this.store, required this.detector, this.installer}) {
+  ToolkitModel({
+    required this.account,
+    required this.store,
+    required this.detector,
+    this.installer,
+    ProgramStarter? start,
+  }) : _start = start ?? _startDetached {
     final kept = Feed.from(store.readJson(_feedKey));
     if (kept != null) {
       _feed = kept;
@@ -200,13 +213,10 @@ class ToolkitModel extends ChangeNotifier {
     }
     final program = _installed[t.id]?.program;
     if (program == null || !File(program).existsSync()) return false;
+    // the programs that have a sign-in open signed in to the Toolkit's account
+    final code = signsInFromToolkit.contains(t.id) ? await account.appCode(t.id) : null;
     try {
-      await Process.start(
-        program,
-        const [],
-        mode: ProcessStartMode.detached,
-        workingDirectory: File(program).parent.path,
-      );
+      await _start(program, [if (code != null) '--signin-code=$code'], File(program).parent.path);
     } catch (_) {
       return false;
     }
@@ -219,6 +229,11 @@ class ToolkitModel extends ChangeNotifier {
     );
     return true;
   }
+
+  final ProgramStarter _start;
+
+  static Future<void> _startDetached(String program, List<String> args, String folder) =>
+      Process.start(program, args, mode: ProcessStartMode.detached, workingDirectory: folder);
 
   /// The user points at the Project Folder Manager they unzipped themselves
   Future<void> setFolderManagerFolder(String folder) async {
