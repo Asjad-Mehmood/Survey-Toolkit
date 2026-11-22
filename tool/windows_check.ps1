@@ -326,6 +326,14 @@ Shot 'toolkit' 'the Toolkit''s window: the sign-in'
 Start-Process -FilePath $exe
 Start-Sleep -Seconds 5
 Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'a second start leaves one copy'
+# a program opened from its shortcut asks the Toolkit for a sign-in code: answered while the
+# Toolkit is open, with no window of its own (not signed in here, so no code)
+$out = Join-Path $work 'result-app-code.json'
+$code = RunAndWait $exe @('--app-code=slope', "--result=$out")
+$answer = if (Test-Path $out) { Get-Content $out -Raw | ConvertFrom-Json } else { $null }
+Write-Host "  --app-code: exit $code, $(if ($answer) { $answer | ConvertTo-Json -Compress } else { 'no result' })"
+Check ($null -ne $answer -and $null -eq $answer.code -and $code -eq 1) '--app-code answers while the Toolkit is open (not signed in: no code)'
+Check (@(Get-Process SurveyToolkit -ErrorAction SilentlyContinue).Count -eq 1) 'and leaves the open Toolkit as the one copy'
 
 Step '13. The workspace: a web app inside the Toolkit'
 # 13. the workspace: Slope Calculator's web app inside the Toolkit's window (Microsoft Edge WebView2)

@@ -12,13 +12,27 @@
 //       set to Ask me: updates what is due, writes what was updated and what waits, and closes;
 //   SurveyToolkit.exe --start-with-windows=on|off --result=<out.json>
 //       the Updates section's switch: writes or removes the Run value.
+//
+// For the programs the Toolkit installs, opened some other way (a desktop shortcut, the Start
+// menu) before they are signed in:
+//   SurveyToolkit.exe --app-code=<tool id> --result=<out.json>
+//       a one-use sign-in code for the Toolkit's account, for that program alone, written as
+//       {"code": "…"} ({"code": null} when the Toolkit isn't signed in or the website can't give
+//       one). No window, also while the Toolkit is open.
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
+
+import 'account/account.dart';
+import 'account/api.dart';
 import 'brand.dart';
+import 'state/store.dart';
 import 'toolkit/detect.dart';
 import 'toolkit/feed.dart';
 import 'toolkit/installer.dart';
+import 'toolkit/toolkit_model.dart' show signsInFromToolkit;
 import 'update/background.dart';
 import 'update/update_prefs.dart';
 
@@ -40,7 +54,15 @@ bool isCommandLine(List<String> args) =>
     argValue(args, 'install') != null ||
     argValue(args, 'uninstall') != null ||
     args.contains('--auto-update') ||
-    argValue(args, 'start-with-windows') != null;
+    argValue(args, 'start-with-windows') != null ||
+    argValue(args, 'app-code') != null;
+
+/// A one-use sign-in code for [app] from the Toolkit's own account on this PC (its sign-in)
+Future<String?> toolkitAppCode(String app) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final store = await Store.open();
+  return Account(Api(base: apiBase, client: http.Client()), store).appCode(app);
+}
 
 Future<Map<String, Object?>> detectAll(Detector detector) async => {
   'toolkitVersion': appVersion,
@@ -58,7 +80,16 @@ Future<int> runCommandLine(
   Detector? detector,
   ToolInstaller? installer,
   StartWithWindows? startup,
+  Future<String?> Function(String app) appCode = toolkitAppCode,
 }) async {
+  final codeFor = argValue(args, 'app-code');
+  if (codeFor != null) {
+    final out = argValue(args, 'result');
+    // only for the programs that sign in, and only to a file they asked for
+    final code = signsInFromToolkit.contains(codeFor) ? await appCode(codeFor) : null;
+    if (out != null) await _write(out, {'code': code});
+    return code == null ? 1 : 0;
+  }
   places ??= Places.windows();
   detector ??= WindowsDetector(places: places);
   final detect = detectTarget(args);
