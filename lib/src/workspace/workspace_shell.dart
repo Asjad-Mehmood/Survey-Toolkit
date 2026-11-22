@@ -62,6 +62,33 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   static const _lastKey = 'workspace-last';
+  static const _pinKey = 'sidebar-pinned';
+
+  /// The sidebar stays wide while an app is open (the pin); otherwise it shrinks to its icons so
+  /// the app has the room, and opens over the app while the pointer is on it
+  late bool _pinned = widget.model.store.read(_pinKey) == 'yes';
+  bool _peek = false;
+  Timer? _peekTimer;
+
+  void _setPinned(bool v) {
+    widget.model.store.write(_pinKey, v ? 'yes' : 'no');
+    setState(() {
+      _pinned = v;
+      _peek = false;
+    });
+  }
+
+  // a short wait before it opens, so passing over it on the way to the app doesn't open it
+  void _hover(bool inside) {
+    _peekTimer?.cancel();
+    if (!inside) {
+      if (_peek) setState(() => _peek = false);
+      return;
+    }
+    _peekTimer = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _peek = true);
+    });
+  }
 
   /// 0 is Home, then [workspaceApps]
   int _page = 0;
@@ -82,6 +109,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   @override
   void dispose() {
+    _peekTimer?.cancel();
     // signed out: each window forgets its sign-in before it goes
     final signedOut = !widget.account.signedIn;
     for (final h in _open.values) {
@@ -125,7 +153,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final roomy = MediaQuery.sizeOf(context).width >= 900;
+    final inApp = _page >= 1 && _page <= workspaceApps.length;
+    // the room the sidebar takes: its icons while an app is open (unless pinned) or the window is narrow
+    final narrow = !roomy || (inApp && !_pinned);
+    // what it shows: wide too while it is open over the app
+    final wide = !narrow || (roomy && _peek);
     final pages = <Widget>[
       ToolsScreen(
         model: widget.model,
@@ -151,12 +184,43 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: Row(
+          body: Stack(
             children: [
-              _Sidebar(page: _page, wide: wide, onPick: _show, account: widget.account, settingsPage: _settingsPage),
-              VerticalDivider(width: 1, color: c.line),
-              Expanded(
-                child: IndexedStack(index: _page, sizing: StackFit.expand, children: pages),
+              Row(
+                children: [
+                  SizedBox(width: narrow ? _Sidebar.narrowWidth : _Sidebar.wideWidth),
+                  VerticalDivider(width: 1, color: c.line),
+                  Expanded(
+                    child: IndexedStack(index: _page, sizing: StackFit.expand, children: pages),
+                  ),
+                ],
+              ),
+              // over the app when it opens out, so the app doesn't jump
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: MouseRegion(
+                  onEnter: narrow && roomy ? (_) => _hover(true) : null,
+                  onExit: (_) => _hover(false),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(boxShadow: narrow && wide ? softShadow(context) : null),
+                    child: _Sidebar(
+                      page: _page,
+                      wide: wide,
+                      onPick: (p) {
+                        _peekTimer?.cancel();
+                        _peek = false;
+                        _show(p);
+                      },
+                      account: widget.account,
+                      settingsPage: _settingsPage,
+                      // in an app on a wide window: keep it open, or let it shrink again
+                      pinned: roomy && inApp ? _pinned : null,
+                      onPin: _setPinned,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -175,7 +239,15 @@ class _Sidebar extends StatelessWidget {
     required this.onPick,
     required this.settingsPage,
     this.account,
+    this.pinned,
+    this.onPin,
   });
+  static const wideWidth = 248.0;
+  static const narrowWidth = 64.0;
+
+  /// Kept open while an app is open (null: no pin shown, on Home and Settings and narrow windows)
+  final bool? pinned;
+  final void Function(bool)? onPin;
   final int page;
   final bool wide;
   final void Function(int) onPick;
@@ -188,7 +260,7 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      width: wide ? 248 : 64,
+      width: wide ? wideWidth : narrowWidth,
       color: c.card,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -205,13 +277,25 @@ class _Sidebar extends StatelessWidget {
                 ),
                 if (wide) ...[
                   const SizedBox(width: 10),
-                  Flexible(
+                  Expanded(
                     child: Text(
                       appName,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.ink, letterSpacing: -0.2),
                     ),
                   ),
+                  if (pinned case final on?)
+                    IconButton(
+                      key: const ValueKey('sidebar pin'),
+                      tooltip: on ? 'Shrink the sidebar while an app is open' : 'Keep the sidebar open',
+                      onPressed: () => onPin?.call(!on),
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        on ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                        size: 17,
+                        color: on ? c.ink : c.muted,
+                      ),
+                    ),
                 ],
               ],
             ),

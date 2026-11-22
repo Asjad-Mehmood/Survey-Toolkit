@@ -149,7 +149,21 @@ void main() {
     });
     await shot(
       t,
-      '12-auto-drafting',
+      '12-auto-drafting-sidebar-pinned',
+      Harness(site: FakeSite(), store: signedInStore()..write('sidebar-pinned', 'yes'), realNative: nativeView),
+      desktop,
+      before: () async {
+        await t.tap(find.byKey(const ValueKey('workspace Drafting')));
+        await settle(t);
+        await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+        await settle(t);
+      },
+    );
+
+    // an app with the sidebar shrunk to its icons
+    await shot(
+      t,
+      '13-app-sidebar-shrunk',
       Harness(site: FakeSite(), store: signedInStore(), realNative: nativeView),
       desktop,
       before: () async {

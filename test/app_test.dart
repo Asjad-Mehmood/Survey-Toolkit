@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -297,6 +298,41 @@ void main() {
       await settle(t);
       return h;
     }
+
+    testWidgets('in an app the sidebar shrinks to its icons, opens over the app on hover, and can be pinned', (
+      t,
+    ) async {
+      final h = await open(t);
+      // Home: the whole sidebar, no pin
+      expect(find.text('Apps'), findsOneWidget);
+      expect(find.byKey(const ValueKey('sidebar pin')), findsNothing);
+      final appLeft = t.getTopLeft(find.byType(IndexedStack)).dx;
+
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      expect(find.text('Apps'), findsNothing, reason: 'icons only, the app has the room');
+      expect(t.getTopLeft(find.byType(IndexedStack)).dx, lessThan(appLeft));
+
+      // the pointer on it: it opens over the app, the app stays where it is
+      final mouse = await t.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: const Offset(30, 300));
+      await mouse.moveTo(const Offset(32, 300));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.pump();
+      expect(find.text('Apps'), findsOneWidget);
+      final shrunkLeft = t.getTopLeft(find.byType(IndexedStack)).dx;
+      expect(shrunkLeft, lessThan(appLeft), reason: 'over the app, not pushing it');
+
+      // pinned: it stays open in every app, and is remembered
+      await t.tap(find.byKey(const ValueKey('sidebar pin')));
+      await settle(t);
+      await mouse.moveTo(const Offset(900, 300));
+      await t.pump(const Duration(milliseconds: 300));
+      expect(find.text('Apps'), findsOneWidget);
+      expect(t.getTopLeft(find.byType(IndexedStack)).dx, appLeft);
+      expect(h.store.read('sidebar-pinned'), 'yes');
+    });
 
     testWidgets('a sidebar with Home, the three web apps, Project Folder Manager and RoadPro', (t) async {
       await open(t);
