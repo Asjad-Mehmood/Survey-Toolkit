@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:survey_toolkit/src/state/store.dart';
 import 'package:survey_toolkit/src/toolkit/installer.dart';
+import 'package:survey_toolkit/src/workspace/workspace_shell.dart';
 
 import 'fakes.dart';
 
@@ -137,6 +139,37 @@ void main() {
       desktop,
       before: () async {
         await t.tap(find.byKey(const ValueKey('workspace RoadPro')));
+        await settle(t);
+      },
+    );
+
+    // Auto Drafting, the real program, inside the Toolkit (remembered as signed in on this PC)
+    SharedPreferences.setMockInitialValues({
+      'autodraft.account': '{"token":"t0","user":{"id":"u1","email":"tester@example.com","name":"Test Surveyor"}}',
+    });
+    await shot(
+      t,
+      '12-auto-drafting-sidebar-pinned',
+      Harness(site: FakeSite(), store: signedInStore()..write('sidebar-pinned', 'yes'), realNative: nativeView),
+      desktop,
+      before: () async {
+        await t.tap(find.byKey(const ValueKey('workspace Drafting')));
+        await settle(t);
+        await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+        await settle(t);
+      },
+    );
+
+    // an app with the sidebar shrunk to its icons
+    await shot(
+      t,
+      '13-app-sidebar-shrunk',
+      Harness(site: FakeSite(), store: signedInStore(), realNative: nativeView),
+      desktop,
+      before: () async {
+        await t.tap(find.byKey(const ValueKey('workspace Drafting')));
+        await settle(t);
+        await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
         await settle(t);
       },
     );

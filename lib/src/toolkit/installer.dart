@@ -267,7 +267,7 @@ class ToolInstaller {
       if (!f.isFile) continue;
       final name = p.basename(f.name.replaceAll('\\', '/'));
       if (name.isEmpty || name.startsWith('.')) continue;
-      out[name] = f.content;
+      out[name] = f.content as List<int>;
     }
     final missing = expected.where((e) => !out.containsKey(e)).toList();
     if (missing.isNotEmpty) throw _Refused('The download is missing ${missing.join(', ')}. Nothing was installed.');

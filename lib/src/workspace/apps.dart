@@ -1,7 +1,10 @@
-// The apps the workspace shows inside the Toolkit's window: the three tools that are web apps, and
-// Project Folder Manager, whose program is part of the Toolkit (FolderManagerView, from its own
-// repository), and RoadPro's page (RoadProPanel: RoadPro itself runs inside AutoCAD).
+// The apps the workspace shows inside the Toolkit's window: the three tools that are web apps,
+// Auto Drafting and Project Folder Manager, whose programs are part of the Toolkit (AutoDraftView
+// and FolderManagerView, from their own repositories), and RoadPro's page (RoadProPanel: RoadPro
+// itself runs inside AutoCAD).
 import 'package:flutter/material.dart';
+
+import '../account/account.dart';
 
 class WorkspaceApp {
   const WorkspaceApp({
@@ -31,8 +34,9 @@ class WorkspaceApp {
   final bool native;
 }
 
-/// How the workspace shows an app that is part of the Toolkit (the program itself; a stand-in in tests)
-typedef NativeViewFactory = Widget Function(WorkspaceApp app);
+/// How the workspace shows an app that is part of the Toolkit (the program itself; a stand-in in
+/// tests). [account] signs Auto Drafting in to the Toolkit's account; none in a preview.
+typedef NativeViewFactory = Widget Function(WorkspaceApp app, Account? account);
 
 const workspaceApps = [
   WorkspaceApp(
@@ -58,6 +62,15 @@ const workspaceApps = [
     path: '/slope-calculation/app',
     icon: Icons.trending_up_rounded,
     toolId: 'slope',
+  ),
+  WorkspaceApp(
+    id: 'auto-draft',
+    name: 'Auto Drafting',
+    short: 'Drafting',
+    path: '',
+    icon: Icons.architecture_rounded,
+    toolId: 'auto-draft',
+    native: true,
   ),
   WorkspaceApp(
     id: 'folder-manager',

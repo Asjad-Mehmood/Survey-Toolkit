@@ -95,7 +95,7 @@ void main() {
       final h = Harness(site: site ?? FakeSite(), store: store ?? signedInStore());
       await t.pumpWidget(h.app);
       await settle(t);
-      await t.tap(find.text('RoadPro').first);
+      await t.tap(find.byKey(const ValueKey('workspace RoadPro')));
       await settle(t);
       return h;
     }

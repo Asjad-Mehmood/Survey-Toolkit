@@ -28,7 +28,14 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  archive: ^4.6.0
+  # 3, not 4: Auto Drafting reads Excel with a package (excel) that needs archive 3
+  archive: ^3.6.1
+  # Auto Drafting itself, shown as one of the workspace's pages (AutoDraftView).
+  # A new version reaches the Toolkit with this ref and a Toolkit release.
+  auto_draft:
+    git:
+      url: https://github.com/Asjad-Mehmood/auto-draft-app.git
+      ref: 72bc55e8329fd2596b542d8cee0984fb1fca4ddc
   crypto: ^3.0.8
   file_selector: ^1.1.0
   flutter:

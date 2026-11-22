@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -298,9 +299,44 @@ void main() {
       return h;
     }
 
+    testWidgets('in an app the sidebar shrinks to its icons, opens over the app on hover, and can be pinned', (
+      t,
+    ) async {
+      final h = await open(t);
+      // Home: the whole sidebar, no pin
+      expect(find.text('Apps'), findsOneWidget);
+      expect(find.byKey(const ValueKey('sidebar pin')), findsNothing);
+      final appLeft = t.getTopLeft(find.byType(IndexedStack)).dx;
+
+      await t.tap(find.byKey(const ValueKey('workspace Slope')));
+      await settle(t);
+      expect(find.text('Apps'), findsNothing, reason: 'icons only, the app has the room');
+      expect(t.getTopLeft(find.byType(IndexedStack)).dx, lessThan(appLeft));
+
+      // the pointer on it: it opens over the app, the app stays where it is
+      final mouse = await t.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: const Offset(30, 300));
+      await mouse.moveTo(const Offset(32, 300));
+      await t.pump(const Duration(milliseconds: 300));
+      await t.pump();
+      expect(find.text('Apps'), findsOneWidget);
+      final shrunkLeft = t.getTopLeft(find.byType(IndexedStack)).dx;
+      expect(shrunkLeft, lessThan(appLeft), reason: 'over the app, not pushing it');
+
+      // pinned: it stays open in every app, and is remembered
+      await t.tap(find.byKey(const ValueKey('sidebar pin')));
+      await settle(t);
+      await mouse.moveTo(const Offset(900, 300));
+      await t.pump(const Duration(milliseconds: 300));
+      expect(find.text('Apps'), findsOneWidget);
+      expect(t.getTopLeft(find.byType(IndexedStack)).dx, appLeft);
+      expect(h.store.read('sidebar-pinned'), 'yes');
+    });
+
     testWidgets('a sidebar with Home, the three web apps, Project Folder Manager and RoadPro', (t) async {
       await open(t);
-      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Folders', 'RoadPro']) {
+      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Drafting', 'Folders', 'RoadPro']) {
         expect(find.byKey(ValueKey('workspace $label')), findsOneWidget, reason: label);
       }
       expect(find.text('1 update available'), findsOneWidget, reason: 'Home is the Tools page');
@@ -351,11 +387,30 @@ void main() {
       await settle(t);
       expect(find.text('1 update available'), findsOneWidget);
       await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await t.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit6);
       await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await settle(t);
       expect(find.text('Project Folder Manager runs here'), findsOneWidget);
       expect(h.natives, ['folder-manager'], reason: 'built once, still open');
+    });
+
+    testWidgets('Auto Drafting runs inside the Toolkit too, signed in to the Toolkit\'s account', (t) async {
+      final site = FakeSite();
+      final h = await open(t, site: site);
+      await t.tap(find.byKey(const ValueKey('workspace Drafting')));
+      await settle(t);
+      expect(find.text('Auto Drafting runs here'), findsOneWidget);
+      expect(h.views, isEmpty, reason: 'not a web app');
+      expect(h.natives, ['auto-draft']);
+      expect(h.nativeAccounts.single, isNotNull, reason: 'its sign-in comes from the Toolkit\'s account');
+      // Ctrl+5 is Auto Drafting
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('Auto Drafting runs here'), findsOneWidget);
     });
 
     testWidgets('Settings at the foot of the sidebar: theme, updates, account; Ctrl+, opens it', (t) async {

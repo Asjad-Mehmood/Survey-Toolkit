@@ -20,7 +20,7 @@ List<int> zipOf(Map<String, String> files) {
     final bytes = utf8.encode(text);
     a.addFile(ArchiveFile(name, bytes.length, bytes));
   });
-  return ZipEncoder().encode(a);
+  return ZipEncoder().encode(a)!;
 }
 
 String shaOf(List<int> b) => sha256.convert(b).toString();
