@@ -29,6 +29,8 @@ class FakeSite {
   bool tokenGood = true;
   final reports = <Map<String, Object?>>[];
   final handoffs = <String>[];
+  final appCodes = <String>[];
+  bool appCodeWorks = true;
   bool handoffWorks = true;
   String feed = File('test/fixtures/feed.json').readAsStringSync();
   bool roadproInfo = true;
@@ -82,6 +84,11 @@ class FakeSite {
         if (!handoffWorks) return json({'error': 'Couldn\'t start the sign-in.'}, 500);
         handoffs.add((jsonDecode(req.body) as Map)['next'] as String);
         return json({'success': true, 'url': 'https://www.exceltokml.com/api/toolkit/handoff?code=${'c' * 64}'});
+      case '/api/toolkit/app-code':
+        if (!authed) return json({'error': 'Sign in'}, 401);
+        if (!appCodeWorks) return json({'error': 'Couldn\'t start the sign-in.'}, 500);
+        appCodes.add((jsonDecode(req.body) as Map)['app'] as String);
+        return json({'success': true, 'code': 'a' * 64, 'expiresIn': 60});
       case '/api/toolkit/event':
         if (!authed) return json({'error': 'Sign in'}, 401);
         reports.add(jsonDecode(req.body) as Map<String, Object?>);

@@ -227,6 +227,21 @@ class Account extends ChangeNotifier {
     }
   }
 
+  /// A one-use code that signs [app] in to the same account when the Toolkit opens it, so the user
+  /// does not sign in twice. Null when signed out or the website can't give one: the program then
+  /// asks the user to sign in, as before.
+  Future<String?> appCode(String app) async {
+    if (!signedIn) return null;
+    try {
+      final j = await api.call('POST', '/api/toolkit/app-code', {'app': app});
+      final code = j['code'];
+      if (code is! String || !RegExp(r'^[0-9a-f]{64}$').hasMatch(code)) return null;
+      return code;
+    } on ApiError {
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await api.call('POST', '/api/auth/logout');
