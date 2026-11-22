@@ -68,8 +68,9 @@ class SignInScreen extends StatelessWidget {
                         SignInCard(
                           account: account,
                           intro:
-                              'Sign in with your free Excel to KML account, the same one as exceltokml.com, '
-                              'Traverse & Level and Slope Calculator. One account for every tool.',
+                              'Sign in with your Excel to KML account, or create one for free. One account works '
+                              'on exceltokml.com and in all our programs, and the programs you open from here are '
+                              'signed in for you.',
                         ),
                       const SizedBox(height: 18),
                       Text(
