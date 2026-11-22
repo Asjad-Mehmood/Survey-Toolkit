@@ -26,7 +26,7 @@ void main() {
     await t.pumpWidget(h.app);
     await settle(t);
     expect(find.text('Your Excel to KML account'), findsOneWidget);
-    expect(find.textContaining('One account for every tool'), findsOneWidget);
+    expect(find.textContaining('One account works'), findsOneWidget);
 
     await t.enterText(find.widgetWithText(TextField, 'Email'), 'tester@example.com');
     await t.enterText(find.widgetWithText(TextField, 'Password'), 'wrong');
