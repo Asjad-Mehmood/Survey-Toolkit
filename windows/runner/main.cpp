@@ -10,11 +10,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Started by Windows at sign-in ("Start with Windows"): only the tray icon, no window
   const bool in_tray = command_line != nullptr && ::wcsstr(command_line, L"--tray") != nullptr;
+  // A program the Toolkit installs asks for a sign-in code (--app-code): no window, and it
+  // answers also while the Toolkit is open
+  const bool app_code = command_line != nullptr && ::wcsstr(command_line, L"--app-code=") != nullptr;
 
   // One window at a time: opening the program again brings the open window to the front, also
   // when it is hidden in the tray.
-  ::CreateMutexW(nullptr, TRUE, L"ExcelToKML.SurveyToolkit.SingleInstance");
-  if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+  if (!app_code) ::CreateMutexW(nullptr, TRUE, L"ExcelToKML.SurveyToolkit.SingleInstance");
+  if (!app_code && ::GetLastError() == ERROR_ALREADY_EXISTS) {
     HWND open = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Survey Toolkit");
     if (open != nullptr && !in_tray) {
       if (::IsIconic(open)) {
@@ -44,7 +47,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
-  FlutterWindow window(project, in_tray);
+  FlutterWindow window(project, in_tray || app_code);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1180, 780);
   if (!window.Create(L"Survey Toolkit", origin, size)) {
