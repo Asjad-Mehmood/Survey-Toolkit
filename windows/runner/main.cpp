@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "flutter_window.h"
+#include "start_splash.h"
 #include "utils.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
@@ -39,6 +40,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+  // the start screen, when the Toolkit is opened to be seen (not for --tray, --app-code or
+  // the other command-line jobs, which show no window)
+  if (command_line == nullptr || ::wcsstr(command_line, L"--") == nullptr) {
+    ShowStartSplash(instance, L"Survey Toolkit");
+  }
 
   flutter::DartProject project(L"data");
 
