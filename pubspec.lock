@@ -29,8 +29,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "434d83908016cc208cea62c49fbde66aaf5302e0"
-      resolved-ref: "434d83908016cc208cea62c49fbde66aaf5302e0"
+      ref: "72bc55e8329fd2596b542d8cee0984fb1fca4ddc"
+      resolved-ref: "72bc55e8329fd2596b542d8cee0984fb1fca4ddc"
       url: "https://github.com/Asjad-Mehmood/auto-draft-app.git"
     source: git
     version: "1.0.0+1"
