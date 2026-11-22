@@ -300,7 +300,7 @@ void main() {
 
     testWidgets('a sidebar with Home, the three web apps, Project Folder Manager and RoadPro', (t) async {
       await open(t);
-      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Folders', 'RoadPro']) {
+      for (final label in ['Home', 'Excel to KML', 'Traverse', 'Slope', 'Drafting', 'Folders', 'RoadPro']) {
         expect(find.byKey(ValueKey('workspace $label')), findsOneWidget, reason: label);
       }
       expect(find.text('1 update available'), findsOneWidget, reason: 'Home is the Tools page');
@@ -351,11 +351,30 @@ void main() {
       await settle(t);
       expect(find.text('1 update available'), findsOneWidget);
       await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await t.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit6);
       await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await settle(t);
       expect(find.text('Project Folder Manager runs here'), findsOneWidget);
       expect(h.natives, ['folder-manager'], reason: 'built once, still open');
+    });
+
+    testWidgets('Auto Drafting runs inside the Toolkit too, signed in to the Toolkit\'s account', (t) async {
+      final site = FakeSite();
+      final h = await open(t, site: site);
+      await t.tap(find.byKey(const ValueKey('workspace Drafting')));
+      await settle(t);
+      expect(find.text('Auto Drafting runs here'), findsOneWidget);
+      expect(h.views, isEmpty, reason: 'not a web app');
+      expect(h.natives, ['auto-draft']);
+      expect(h.nativeAccounts.single, isNotNull, reason: 'its sign-in comes from the Toolkit\'s account');
+      // Ctrl+5 is Auto Drafting
+      await t.tap(find.byKey(const ValueKey('workspace Home')));
+      await settle(t);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await settle(t);
+      expect(find.text('Auto Drafting runs here'), findsOneWidget);
     });
 
     testWidgets('Settings at the foot of the sidebar: theme, updates, account; Ctrl+, opens it', (t) async {

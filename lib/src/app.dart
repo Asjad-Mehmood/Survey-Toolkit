@@ -27,7 +27,7 @@ class ToolkitApp extends StatelessWidget {
     required this.settings,
     this.checkUpdates = true,
     this.views = webView2Factory,
-    this.native = folderManagerView,
+    this.native = nativeView,
     this.roadproPc,
     this.background,
   });

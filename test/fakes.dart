@@ -223,6 +223,7 @@ class Harness {
     Detector? detector,
     ToolInstaller? installer,
     bool lookOnly = false,
+    this.realNative,
   }) {
     background = Background(tray: tray, startup: startup);
     account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
@@ -232,10 +233,15 @@ class Harness {
   }
   late final ToolInstaller? installer;
 
+  /// The real programs that are part of the Toolkit instead of stand-ins (screenshots)
+  final NativeViewFactory? realNative;
+
   /// The Toolkit's own apps shown (Project Folder Manager), in order
   final natives = <String>[];
-  Widget _native(WorkspaceApp app) {
+  final nativeAccounts = <Account?>[];
+  Widget _native(WorkspaceApp app, Account? account) {
     natives.add(app.id);
+    nativeAccounts.add(account);
     return Center(child: Text('${app.name} runs here'));
   }
 
@@ -264,7 +270,7 @@ class Harness {
     settings: settings,
     checkUpdates: false,
     views: _view,
-    native: _native,
+    native: realNative ?? _native,
     roadproPc: roadproPc,
     background: background,
   );

@@ -3,9 +3,10 @@
 // (the website's single-use sign-in handover), Project Folder Manager runs inside it as part of
 // the Toolkit, and RoadPro has its own page (lib/src/roadpro: it runs inside AutoCAD). Each stays
 // open in the background when you switch, like tabs. Settings and the account are at the foot of
-// the sidebar. Ctrl+1 is Home, Ctrl+2 to Ctrl+6 the apps, Ctrl+, Settings.
+// the sidebar. Ctrl+1 is Home, Ctrl+2 to Ctrl+7 the apps, Ctrl+, Settings.
 import 'dart:async';
 
+import 'package:auto_draft/auto_draft.dart' show AutoDraftView;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_folder_manager/project_folder_manager.dart' show FolderManagerView;
@@ -25,8 +26,12 @@ import '../update/auto_update.dart';
 import 'app_view.dart';
 import 'apps.dart';
 
-/// Project Folder Manager itself, with this user's settings (the same as the separate program's)
-Widget folderManagerView(WorkspaceApp app) => const FolderManagerView();
+/// The programs that are part of the Toolkit: Auto Drafting, signed in to the Toolkit's account
+/// (a one-use code from the website), and Project Folder Manager, with this user's settings (the
+/// same as the separate program's)
+Widget nativeView(WorkspaceApp app, Account? account) => app.id == 'auto-draft'
+    ? AutoDraftView(signinCode: account == null ? null : () => account.appCode('auto-draft'))
+    : const FolderManagerView();
 
 class WorkspaceShell extends StatefulWidget {
   const WorkspaceShell({
@@ -35,7 +40,7 @@ class WorkspaceShell extends StatefulWidget {
     required this.model,
     required this.settings,
     required this.views,
-    this.native = folderManagerView,
+    this.native = nativeView,
     this.roadproPc,
     this.auto,
   });
@@ -102,7 +107,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           app.id,
           () => app.id == 'roadpro'
               ? RoadProPanel(model: widget.model, pc: widget.roadproPc ?? WindowsRoadProPc())
-              : widget.native(app),
+              : widget.native(app, widget.account),
         );
       } else {
         _open.putIfAbsent(app.id, () => widget.views(app, () => _startOf(app)));
@@ -587,7 +592,7 @@ class _WorkspacePreviewState extends State<WorkspacePreview> {
           const VerticalDivider(width: 1),
           Expanded(
             child: _app.native
-                ? _NativePanel(app: _app, view: folderManagerView(_app))
+                ? _NativePanel(app: _app, view: nativeView(_app, null))
                 : _AppPanel(app: _app, view: _view!, model: null),
           ),
         ],
