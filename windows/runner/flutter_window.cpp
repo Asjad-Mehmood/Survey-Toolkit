@@ -1,5 +1,7 @@
 #include "flutter_window.h"
 
+#include "start_splash.h"
+
 #include <flutter/standard_method_codec.h>
 
 #include <optional>
@@ -37,6 +39,7 @@ bool FlutterWindow::OnCreate() {
   // started by Windows at sign-in: only the tray icon, no window
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     if (!start_hidden_) this->Show();
+    CloseStartSplash();
   });
 
   // Flutter can complete the first frame before the "show window" callback is
