@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:survey_toolkit/src/ui/theme.dart';
 import 'package:survey_toolkit/src/workspace/workspace_shell.dart';
+
 import 'fakes.dart';
 
 void main() {
