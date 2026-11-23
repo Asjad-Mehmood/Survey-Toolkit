@@ -92,8 +92,12 @@ const workspaceApps = [
   ),
 ];
 
-/// Pages the workspace keeps inside the window: the website itself. Anything else opens in the browser.
-bool staysInside(Uri u) => u.scheme == 'https' && (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com');
+/// Pages the workspace keeps inside the window: the website itself, and its sign-in address
+/// (auth.exceltokml.com), so a web app that has to sign in again does so in the window. Anything
+/// else opens in the browser.
+bool staysInside(Uri u) =>
+    u.scheme == 'https' &&
+    (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com' || u.host == 'auth.exceltokml.com');
 
 /// Links a page inside the workspace may hand to Windows: web pages and email only. Any other
 /// scheme (file:, ms-msdt:, search-ms:, a program's own …) could start something on the PC.
