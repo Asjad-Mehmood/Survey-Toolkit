@@ -511,6 +511,21 @@ void main() {
       expect(staysInside(Uri.parse('http://www.exceltokml.com/app')), isFalse);
     });
 
+    test('only web and email links are handed to Windows', () {
+      expect(opensInBrowser(Uri.parse('https://accounts.google.com/x')), isTrue);
+      expect(opensInBrowser(Uri.parse('http://example.com/')), isTrue);
+      expect(opensInBrowser(Uri.parse('mailto:help@exceltokml.com')), isTrue);
+      for (final bad in [
+        'file:///C:/Windows/System32/calc.exe',
+        'ms-msdt:/id x',
+        'search-ms:query=x',
+        'javascript:alert(1)',
+        'https:///nohost',
+      ]) {
+        expect(opensInBrowser(Uri.parse(bad)), isFalse, reason: bad);
+      }
+    });
+
     test('a handover address from anywhere but the website is not used', () async {
       final site = FakeSite();
       final store = signedInStore();

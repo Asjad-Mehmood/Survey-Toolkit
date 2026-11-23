@@ -94,3 +94,8 @@ const workspaceApps = [
 
 /// Pages the workspace keeps inside the window: the website itself. Anything else opens in the browser.
 bool staysInside(Uri u) => u.scheme == 'https' && (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com');
+
+/// Links a page inside the workspace may hand to Windows: web pages and email only. Any other
+/// scheme (file:, ms-msdt:, search-ms:, a program's own …) could start something on the PC.
+bool opensInBrowser(Uri u) =>
+    (u.scheme == 'https' || u.scheme == 'http' || u.scheme == 'mailto') && (u.scheme == 'mailto' || u.host.isNotEmpty);
