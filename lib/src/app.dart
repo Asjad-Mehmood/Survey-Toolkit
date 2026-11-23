@@ -172,6 +172,8 @@ class _GateState extends State<_Gate> {
       native: widget.native,
       roadproPc: widget.roadproPc,
       auto: _auto,
+      // Excel to KML made ready in the background (not in tests)
+      warmUp: widget.checkUpdates,
     );
   }
 }

@@ -43,6 +43,7 @@ class WorkspaceShell extends StatefulWidget {
     this.native = nativeView,
     this.roadproPc,
     this.auto,
+    this.warmUp = false,
   });
   final Account account;
   final ToolkitModel model;
@@ -55,6 +56,10 @@ class WorkspaceShell extends StatefulWidget {
 
   /// The automatic updates, for the Tools page's Updates section
   final AutoUpdater? auto;
+
+  /// Opens Excel to KML in the background a moment after the Toolkit starts, so it is ready
+  /// when it is picked (its page is large); off in tests
+  final bool warmUp;
 
   @override
   State<WorkspaceShell> createState() => _WorkspaceShellState();
@@ -105,11 +110,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     // back where the user was last time
     final last = workspaceApps.indexWhere((a) => a.id == widget.model.store.read(_lastKey));
     if (last >= 0) _show(last + 1, remember: false);
+    if (widget.warmUp) _warmTimer = Timer(_warmAfter, _warmUpApps);
+  }
+
+  /// How long after the Toolkit opens Excel to KML starts loading behind Home
+  static const _warmAfter = Duration(seconds: 2);
+  Timer? _warmTimer;
+
+  /// Excel to KML, loaded behind the page shown (the workspace keeps an opened app running), so
+  /// it shows at once when picked rather than after its page has come from the website
+  void _warmUpApps() {
+    if (!mounted) return;
+    final app = workspaceApps.firstWhere((a) => a.id == 'excel-to-kml');
+    if (_open.containsKey(app.id)) return;
+    setState(() => _open[app.id] = widget.views(app, () => _startOf(app)));
   }
 
   @override
   void dispose() {
     _peekTimer?.cancel();
+    _warmTimer?.cancel();
     // signed out: each window forgets its sign-in before it goes
     final signedOut = !widget.account.signedIn;
     for (final h in _open.values) {
