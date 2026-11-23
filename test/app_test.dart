@@ -507,6 +507,8 @@ void main() {
 
     test('pages off the website open in the browser', () {
       expect(staysInside(Uri.parse('https://www.exceltokml.com/slope-calculation/app')), isTrue);
+      expect(staysInside(Uri.parse('https://auth.exceltokml.com/login?next=%2Fapp')), isTrue);
+      expect(staysInside(Uri.parse('https://admin.exceltokml.com/admin')), isFalse);
       expect(staysInside(Uri.parse('https://accounts.google.com/x')), isFalse);
       expect(staysInside(Uri.parse('http://www.exceltokml.com/app')), isFalse);
     });
