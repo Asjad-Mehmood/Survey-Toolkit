@@ -103,7 +103,7 @@ class WebView2Handle implements AppViewHandle {
       _state.value = _state.value.copyWith(url: url);
       return;
     }
-    unawaited(launchUrl(u, mode: LaunchMode.externalApplication));
+    if (opensInBrowser(u)) unawaited(launchUrl(u, mode: LaunchMode.externalApplication));
     unawaited(_controller.goBack());
   }
 

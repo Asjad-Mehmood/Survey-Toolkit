@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account/account.dart';
 import '../account/api.dart';
+import '../toolkit/feed.dart' show isAllowedUrl;
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
 
@@ -74,7 +75,8 @@ class _SignInCardState extends State<SignInCard> {
       _browser = s;
       _step = _Step.browser;
     });
-    await launchUrl(Uri.parse(s.url), mode: LaunchMode.externalApplication);
+    // only the website's own sign-in page is opened
+    if (isAllowedUrl(s.url)) await launchUrl(Uri.parse(s.url), mode: LaunchMode.externalApplication);
     _poll?.cancel();
     _poll = Timer.periodic(const Duration(seconds: 3), (_) async {
       try {
