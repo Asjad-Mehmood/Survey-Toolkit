@@ -56,6 +56,13 @@ void main() {
     await t.pumpWidget(RepaintBoundary(key: key, child: h.app));
     await settle(t);
     if (before != null) await before();
+    // the tools' logos are pictures: decode them before the shot
+    await t.runAsync(() async {
+      for (final e in find.byType(Image).evaluate()) {
+        await precacheImage((e.widget as Image).image, e);
+      }
+    });
+    await t.pump();
     final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     await t.runAsync(() async {
       final image = await boundary.toImage(pixelRatio: 2);

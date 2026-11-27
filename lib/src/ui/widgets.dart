@@ -341,15 +341,36 @@ class Notice extends StatelessWidget {
   _ => (const Color(0xFF475569), const Color(0xFF94A3B8)),
 };
 
-/// A tool's icon: drawn in the tool's colour on a very light tint of it
+/// The tools with their own logo in assets/apps (the same picture as their program's icon)
+const toolLogos = {'excel-to-kml', 'traverse', 'slope', 'auto-draft', 'folder-manager', 'roadpro'};
+
+/// A tool's icon: its own logo, the same as on its program and Start menu shortcut; a tool
+/// without one is drawn in its colour on a very light tint of it
 class AppIcon extends StatelessWidget {
-  const AppIcon({super.key, required this.id, required this.icon, this.size = 40});
+  const AppIcon({super.key, required this.id, required this.icon, this.size = 40, this.logo = true});
   final String id;
   final IconData icon;
   final double size;
 
+  /// false: only the tool's colours, for something that isn't the tool (the figures on Home)
+  final bool logo;
+
   @override
   Widget build(BuildContext context) {
+    if (logo && toolLogos.contains(id)) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.24),
+        child: Image.asset(
+          'assets/apps/$id.png',
+          key: ValueKey('logo $id'),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          excludeFromSemantics: true,
+        ),
+      );
+    }
     final (a, _) = toolColours(id);
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(

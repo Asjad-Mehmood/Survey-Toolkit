@@ -73,6 +73,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/brand/icon-512.png
+    # each tool's own logo (from its repository), on its card, in the sidebar and in the updates list
+    - assets/apps/
   fonts:
     - family: Inter
       fonts:

@@ -431,7 +431,7 @@ class _Hero extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIcon(id: id, icon: icon, size: 34),
+          AppIcon(id: id, icon: icon, size: 34, logo: false),
           const SizedBox(width: 12),
           Flexible(
             child: Column(
