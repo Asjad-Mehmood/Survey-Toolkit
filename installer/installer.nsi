@@ -42,7 +42,7 @@ ShowInstDetails show
 
 VIProductVersion "${VERSION}.0"
 VIAddVersionKey "ProductName" "${APP}"
-VIAddVersionKey "CompanyName" "Excel to KML"
+VIAddVersionKey "CompanyName" "exceltokml.com"
 VIAddVersionKey "FileDescription" "${APP} installer"
 VIAddVersionKey "FileVersion" "${VERSION}"
 VIAddVersionKey "ProductVersion" "${VERSION}"
@@ -68,7 +68,7 @@ Section "Install"
 
   WriteRegStr HKCU "${KEY}" "DisplayName" "${APP}"
   WriteRegStr HKCU "${KEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "${KEY}" "Publisher" "Excel to KML"
+  WriteRegStr HKCU "${KEY}" "Publisher" "exceltokml.com"
   WriteRegStr HKCU "${KEY}" "URLInfoAbout" "https://www.exceltokml.com"
   WriteRegStr HKCU "${KEY}" "DisplayIcon" "$INSTDIR\icon.ico"
   WriteRegStr HKCU "${KEY}" "InstallLocation" "$INSTDIR"

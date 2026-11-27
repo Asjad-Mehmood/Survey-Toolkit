@@ -9,6 +9,8 @@ import 'brand.dart';
 import 'roadpro/roadpro_pc.dart';
 import 'screens/beta_screen.dart';
 import 'screens/sign_in_screen.dart';
+import 'support/app_info.dart';
+import 'support/crash_log.dart';
 import 'toolkit/toolkit_model.dart';
 import 'ui/settings.dart';
 import 'ui/theme.dart';
@@ -59,6 +61,7 @@ class ToolkitApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: settings.themeMode,
+      builder: (context, child) => CrashNotice(onReport: appInfo.report, child: child!),
       home: _Gate(
         account: account,
         model: model,

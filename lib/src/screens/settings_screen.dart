@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account/account.dart';
 import '../brand.dart';
+import '../support/app_info.dart';
+import '../support/help.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
 import '../ui/theme.dart';
@@ -109,6 +111,15 @@ class SettingsScreen extends StatelessWidget {
                           child: const Text('exceltokml.com/toolkit'),
                         ),
                         detail: 'Version $appVersion · $appPublisher',
+                      ),
+                      row(
+                        'Help and support',
+                        OutlinedButton.icon(
+                          onPressed: () => showHelp(context, appInfo, shortcuts: () => showShortcuts(context)),
+                          icon: const Icon(Icons.help_outline_rounded),
+                          label: const Text('Help'),
+                        ),
+                        detail: "What's new, the guide, Report a problem, the error log and the open-source licences",
                       ),
                     ],
                   ),
