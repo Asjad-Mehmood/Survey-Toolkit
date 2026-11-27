@@ -18,6 +18,8 @@ import '../roadpro/roadpro_panel.dart';
 import '../roadpro/roadpro_pc.dart';
 import '../screens/settings_screen.dart';
 import '../screens/tools_screen.dart';
+import '../support/app_info.dart';
+import '../support/help.dart';
 import '../toolkit/toolkit_model.dart';
 import '../ui/settings.dart';
 import '../ui/theme.dart';
@@ -200,6 +202,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         for (var i = 0; i <= workspaceApps.length; i++)
           SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i), control: true): () => _show(i),
         const SingleActivator(LogicalKeyboardKey.comma, control: true): () => _show(_settingsPage),
+        const SingleActivator(LogicalKeyboardKey.f1): () =>
+            showHelp(context, appInfo, shortcuts: () => showShortcuts(context)),
       },
       child: Focus(
         autofocus: true,
@@ -359,6 +363,15 @@ class _Sidebar extends StatelessWidget {
           ),
           Divider(height: 1, color: c.line),
           const SizedBox(height: 6),
+          _NavItem(
+            label: 'Help',
+            name: 'Help',
+            icon: Icons.help_outline_rounded,
+            on: false,
+            wide: wide,
+            shortcut: 'F1',
+            onTap: () => showHelp(context, appInfo, shortcuts: () => showShortcuts(context)),
+          ),
           _NavItem(
             label: 'Settings',
             name: 'Settings',

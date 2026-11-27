@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 const appName = 'Survey Toolkit';
 const appTagline = 'Every survey tool from exceltokml.com, always up to date';
-const appPublisher = 'Excel to KML';
+const appPublisher = 'exceltokml.com';
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0.0');
 const websiteUrl = 'https://www.exceltokml.com';
 

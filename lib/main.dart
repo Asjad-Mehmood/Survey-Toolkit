@@ -11,6 +11,7 @@ import 'src/app.dart';
 import 'src/brand.dart';
 import 'src/cli.dart';
 import 'src/state/store.dart';
+import 'src/support/crash_log.dart';
 import 'src/toolkit/detect.dart';
 import 'src/toolkit/installer.dart';
 import 'src/toolkit/toolkit_model.dart';
@@ -24,6 +25,8 @@ Future<void> main(List<String> args) async {
 
   WidgetsFlutterBinding.ensureInitialized();
   final places = Places.windows();
+  // errors go into the same toolkit.log as the installs, for support
+  CrashLog.start(appName: appName, version: appVersion, logPath: places.log);
   // the web apps' own browser data (their sign-in, offline copies) in the Toolkit's folder;
   // the Toolkit's uninstaller removes it
   try {
