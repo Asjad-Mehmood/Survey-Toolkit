@@ -35,7 +35,7 @@ dependencies:
   auto_draft:
     git:
       url: https://github.com/Asjad-Mehmood/auto-draft-app.git
-      ref: 72bc55e8329fd2596b542d8cee0984fb1fca4ddc
+      ref: 30e4a40263946303df0b1281c47774e66dcff79c
   crypto: ^3.0.8
   file_selector: ^1.1.0
   flutter:
@@ -47,7 +47,7 @@ dependencies:
   project_folder_manager:
     git:
       url: https://github.com/Asjad-Mehmood/Project-manager.git
-      ref: 3a63a8db480953e103fd96b9ede9fe1a34f61f2a
+      ref: 914a428db0ba3918fc8a0d9b13c9ff485ff78d5a
   shared_preferences: ^2.5.6
   url_launcher: ^6.3.3
   # 0.4.0 with pen presses sent where the pen is (third_party/webview_windows/README.toolkit.md)
