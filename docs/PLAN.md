@@ -1,6 +1,6 @@
 # Survey Toolkit: plan
 
-**Goal:** one program a surveyor downloads once. They sign in with their exceltokml.com account,
+**Goal:** one program a surveyor downloads once. They sign in with their SurveyX Digital account,
 install any of the five tools with one click, and from then on every tool updates itself when a
 new version is published.
 

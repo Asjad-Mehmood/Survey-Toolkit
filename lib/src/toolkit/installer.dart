@@ -1,7 +1,7 @@
 // Installing, updating and removing the tools (T3), the way T0 found each one works
 // (docs/TOOLS.md):
 //
-//   1. The download comes from the website's feed: only from www.exceltokml.com or the owner's
+//   1. The download comes from the website's feed: only from the website (surveyxdigital.com) or the owner's
 //      GitHub releases, over HTTPS. It is saved under %LOCALAPPDATA%\Survey Toolkit\downloads and
 //      its SHA-256 is checked; a download that doesn't match is deleted and nothing is installed.
 //   2. A program that is open is never installed over: its installer would close it by force
@@ -456,9 +456,9 @@ String packageContents(String version, String main) {
   return '''<?xml version="1.0" encoding="utf-8"?>
 <ApplicationPackage SchemaVersion="1.0" AppVersion="$v" Name="RoadPro"
   Description="RoadPro, the road builder for AutoCAD. Installed by the Survey Toolkit."
-  Author="Excel to KML" AutodeskProduct="AutoCAD" ProductType="Application"
+  Author="SurveyX Digital" AutodeskProduct="AutoCAD" ProductType="Application"
   ProductCode="{6B1A3C52-2F0E-4E8B-9C41-52A7D3F0B1E4}" UpgradeCode="{0C5E9D17-8A4B-4F63-B2E1-7D9A6C3E5F20}">
-  <CompanyDetails Name="Excel to KML" Url="https://www.exceltokml.com/roadpro" />
+  <CompanyDetails Name="SurveyX Digital" Url="https://www.surveyxdigital.com/roadpro" />
   <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R19.1" />
   <Components Description="RoadPro">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R19.1" />

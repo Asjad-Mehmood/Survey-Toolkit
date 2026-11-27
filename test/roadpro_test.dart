@@ -74,7 +74,10 @@ void main() {
         'keys': [
           {'key': 'U', 'text': 'Undo'},
         ],
-        'links': {'guide': 'https://www.exceltokml.com/roadpro/RoadPro_User_Guide.pdf', 'page': 'http://x.example/'},
+        'links': {
+          'guide': 'https://www.surveyxdigital.com/roadpro/RoadPro_User_Guide.pdf',
+          'page': 'http://x.example/',
+        },
       })!;
       expect(info.commands.map((c) => c.short), ['RDP', 'ROADPRORESET']);
       expect(info.keys, [('U', 'Undo')]);

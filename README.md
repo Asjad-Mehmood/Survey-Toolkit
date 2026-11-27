@@ -1,7 +1,7 @@
 # Survey Toolkit
 
 One Windows program that installs and keeps up to date every survey program from
-[exceltokml.com](https://www.exceltokml.com):
+[exceltokml.com](https://www.surveyxdigital.com):
 
 | Tool | Platform |
 | --- | --- |
@@ -11,8 +11,8 @@ One Windows program that installs and keeps up to date every survey program from
 | Project Folder Manager | Windows |
 | Slope Calculator | Web app and Windows |
 
-**Public from v1.1.0**, for everyone with a free exceltokml.com account: download it from
-[exceltokml.com/toolkit](https://www.exceltokml.com/toolkit). The Toolkit uses each program's own
+**Public from v1.1.0**, for everyone with a free SurveyX Digital account: download it from
+[exceltokml.com/toolkit](https://www.surveyxdigital.com/toolkit). The Toolkit uses each program's own
 official download and installer, checked by SHA-256. See [docs/PLAN.md](docs/PLAN.md) for the phases and the separation rules, and
 [docs/TOOLS.md](docs/TOOLS.md) for how each program is found, installed, updated and removed.
 

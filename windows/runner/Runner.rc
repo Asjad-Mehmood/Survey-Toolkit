@@ -90,10 +90,10 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "Excel to KML" "\0"
-            VALUE "FileDescription", "Survey Toolkit - installs and updates the exceltokml.com survey tools" "\0"
+            VALUE "FileDescription", "Survey Toolkit - installs and updates the SurveyX Digital survey tools" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "SurveyToolkit" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Asjad Mehmood. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 SurveyX Digital. All rights reserved." "\0"
             VALUE "OriginalFilename", "SurveyToolkit.exe" "\0"
             VALUE "ProductName", "Survey Toolkit" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

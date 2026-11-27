@@ -546,7 +546,7 @@ class _UpdatesCard extends StatelessWidget {
     final headline = model.busy && model.checkedAt == null
         ? 'Checking your tools…'
         : model.noFeed
-        ? 'Can\'t reach exceltokml.com yet'
+        ? 'Can\'t reach surveyxdigital.com yet'
         : waiting.isNotEmpty
         ? '${waiting.length} ${waiting.length == 1 ? 'update' : 'updates'} available'
         : installed == 0

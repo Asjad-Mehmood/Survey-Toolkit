@@ -22,7 +22,7 @@ void main() {
     await open(t);
     await t.tap(find.text('Help'));
     await t.pumpAndSettle();
-    expect(find.text('Version $appVersion · exceltokml.com'), findsOneWidget);
+    expect(find.text('Version $appVersion · SurveyX Digital'), findsOneWidget);
     for (final s in ["What's new", 'User guide', 'Keyboard shortcuts', 'Report a problem', 'Open-source licences']) {
       expect(find.text(s), findsOneWidget);
     }

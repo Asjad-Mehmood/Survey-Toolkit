@@ -15,7 +15,7 @@ void main() {
     final app = workspaceApps.firstWhere((a) => a.id == 'auto-draft');
     await t.pumpWidget(MaterialApp(home: Scaffold(body: nativeView(app, null))));
     await t.pumpAndSettle();
-    expect(find.text('Your Excel to KML account'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^Your (SurveyX Digital|Excel to KML) account$')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 }

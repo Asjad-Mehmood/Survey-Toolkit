@@ -26,7 +26,7 @@ void main() {
     final h = Harness(site: FakeSite(), store: Store.memory());
     await t.pumpWidget(h.app);
     await settle(t);
-    expect(find.text('Your Excel to KML account'), findsOneWidget);
+    expect(find.text('Your SurveyX Digital account'), findsOneWidget);
     expect(find.textContaining('One account works'), findsOneWidget);
 
     await t.enterText(find.widgetWithText(TextField, 'Email'), 'tester@example.com');
@@ -277,7 +277,7 @@ void main() {
     await settle(t);
     expect(find.text('1 update available'), findsOneWidget);
     expect(find.textContaining('(offline)'), findsOneWidget);
-    expect(find.textContaining('No connection to exceltokml.com'), findsOneWidget);
+    expect(find.textContaining('No connection to surveyxdigital.com'), findsOneWidget);
   });
 
   testWidgets('a sign-in the website no longer accepts goes back to the sign-in', (t) async {
@@ -285,7 +285,7 @@ void main() {
     final h = Harness(site: site, store: signedInStore());
     await t.pumpWidget(h.app);
     await settle(t);
-    expect(find.text('Your Excel to KML account'), findsOneWidget);
+    expect(find.text('Your SurveyX Digital account'), findsOneWidget);
   });
 
   group('the workspace', () {
@@ -348,7 +348,7 @@ void main() {
       await t.tap(find.byKey(const ValueKey('workspace Slope')));
       await settle(t);
       expect(site.handoffs, ['/slope-calculation/app']);
-      expect(find.text('Showing https://www.exceltokml.com/api/toolkit/handoff?code=${'c' * 64}'), findsOneWidget);
+      expect(find.text('Showing https://www.surveyxdigital.com/api/toolkit/handoff?code=${'c' * 64}'), findsOneWidget);
       expect(find.text('Slope Calculator'), findsWidgets);
       // installed on this PC: the Windows program is a click away
       expect(find.text('Windows app'), findsOneWidget);
@@ -366,7 +366,7 @@ void main() {
       await open(t, site: site);
       await t.tap(find.byKey(const ValueKey('workspace Traverse')));
       await settle(t);
-      expect(find.text('Showing https://www.exceltokml.com/traverse/app'), findsOneWidget);
+      expect(find.text('Showing https://www.surveyxdigital.com/traverse/app'), findsOneWidget);
       // not installed here: no Windows app button
       expect(find.text('Windows app'), findsNothing);
     });
@@ -443,7 +443,7 @@ void main() {
       await settle(t);
       await t.tap(find.text('Sign out'));
       await settle(t);
-      expect(find.text('Your Excel to KML account'), findsOneWidget);
+      expect(find.text('Your SurveyX Digital account'), findsOneWidget);
     });
 
     testWidgets('Ctrl+1 to Ctrl+5', (t) async {
@@ -478,7 +478,7 @@ void main() {
       await settle(t);
       await h.account.signOut();
       await settle(t);
-      expect(find.text('Your Excel to KML account'), findsOneWidget);
+      expect(find.text('Your SurveyX Digital account'), findsOneWidget);
       expect(h.views.every((v) => v.forgot), isTrue);
     });
 
@@ -498,7 +498,7 @@ void main() {
       );
       await settle(t);
       expect(opened, ['slope']);
-      expect(find.text('Showing https://www.exceltokml.com/slope-calculation/app'), findsOneWidget);
+      expect(find.text('Showing https://www.surveyxdigital.com/slope-calculation/app'), findsOneWidget);
       expect(find.text('1 update available'), findsNothing);
       await t.tap(find.byKey(const ValueKey('workspace Home')));
       await settle(t);
@@ -506,8 +506,11 @@ void main() {
     });
 
     test('pages off the website open in the browser', () {
-      expect(staysInside(Uri.parse('https://www.exceltokml.com/slope-calculation/app')), isTrue);
+      expect(staysInside(Uri.parse('https://www.surveyxdigital.com/slope-calculation/app')), isTrue);
       expect(staysInside(Uri.parse('https://auth.exceltokml.com/login?next=%2Fapp')), isTrue);
+      expect(staysInside(Uri.parse('https://auth.surveyxdigital.com/login?next=%2Fapp')), isTrue);
+      expect(staysInside(Uri.parse('https://www.surveyxdigital.com/traverse/app')), isTrue);
+      expect(staysInside(Uri.parse('https://admin.surveyxdigital.com/admin')), isFalse);
       expect(staysInside(Uri.parse('https://admin.exceltokml.com/admin')), isFalse);
       expect(staysInside(Uri.parse('https://accounts.google.com/x')), isFalse);
       expect(staysInside(Uri.parse('http://www.exceltokml.com/app')), isFalse);
@@ -531,11 +534,11 @@ void main() {
     test('a handover address from anywhere but the website is not used', () async {
       final site = FakeSite();
       final store = signedInStore();
-      final account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
-      expect(await account.handoffUrl('/app'), startsWith('https://www.exceltokml.com/api/toolkit/handoff?code='));
+      final account = Account(Api(base: 'https://www.surveyxdigital.com', client: site.client), store);
+      expect(await account.handoffUrl('/app'), startsWith('https://www.surveyxdigital.com/api/toolkit/handoff?code='));
       final evil = Account(
         Api(
-          base: 'https://www.exceltokml.com',
+          base: 'https://www.surveyxdigital.com',
           client: MockClient(
             (_) async => http.Response(jsonEncode({'url': 'https://evil.example/api/toolkit/handoff'}), 200),
           ),

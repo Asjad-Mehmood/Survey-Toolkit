@@ -1,5 +1,5 @@
 // Help: About, What's new, the user guide, Report a problem, the error log and the open-source
-// licences, the same in every program from exceltokml.com.
+// licences, the same in every program from SurveyX Digital.
 import 'package:flutter/material.dart';
 
 import 'crash_log.dart';
@@ -14,7 +14,7 @@ class AppInfo {
     required this.guideUrl,
     required this.whatsNewUrl,
     required this.openUrl,
-    this.legalese = '© 2026 Asjad Mehmood · exceltokml.com',
+    this.legalese = '© 2026 SurveyX Digital',
     this.icon,
   });
 
@@ -31,7 +31,7 @@ class AppInfo {
   final Widget? icon;
 
   /// The website's contact form with the program, its version and the platform filled in
-  String get reportUrl => Uri.https('www.exceltokml.com', '/contact', {
+  String get reportUrl => Uri.https('www.surveyxdigital.com', '/contact', {
     'topic': 'problem',
     'program': program,
     'version': version,

@@ -19,7 +19,7 @@ class BetaScreen extends StatelessWidget {
       BetaAccess.closed =>
         account.closedMessage ?? 'The $appName isn\'t open to this account just now. Please try again later.',
       _ when account.offline =>
-        'No connection to exceltokml.com, so your account can\'t be checked. Connect and press Check again.',
+        'No connection to surveyxdigital.com, so your account can\'t be checked. Connect and press Check again.',
       _ => 'Checking your account…',
     };
     return Scaffold(
