@@ -85,11 +85,11 @@ Same pattern as Excel to KML.
   - `/S /UPDATE` opens it afterwards.
   - Either way, an open copy is closed by force.
 - **Uninstall:** `QuietUninstallString` is given: `"<folder>\Uninstall.exe" /S`.
-- **Web app:** `https://www.exceltokml.com/slope-calculation/app`.
+- **Web app:** `https://www.surveyxdigital.com/slope-calculation/app`.
 
 ## RoadPro (AutoCAD plugin)
 
-- **Download:** `https://www.exceltokml.com/roadpro/RoadPro.zip`. It holds `RoadPro.lsp`
+- **Download:** `https://www.surveyxdigital.com/roadpro/RoadPro.zip`. It holds `RoadPro.lsp`
   (the plugin), `RP_PAVER.pat` (a hatch pattern RoadPro also writes itself) and `README.txt`.
 - **Version:** only inside the file, on line 3 of `RoadPro.lsp`: `;;; Version : 3.4`. The
   website has it in `lib/roadpro.ts` too. The feed (T1) publishes it with the zip's SHA-256.
@@ -125,7 +125,7 @@ Same pattern as Excel to KML.
   Same settings file, so both show the same projects. Its version is the one in the Toolkit's
   `pubspec.yaml`; the separate program keeps its own installer and updates.
 
-**6.2 and earlier: a zip** (`https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip`)
+**6.2 and earlier: a zip** (`https://www.surveyxdigital.com/project-folder-manager/Project_Folder_Manager.zip`)
 with `Project_Folder_Manager.exe`, `.hta`, `READ_ME.txt` and `dashboard_icon.ico`, the version only
 inside the `.hta` (`PROJECT FOLDER MANAGER  v6.2`) and the settings next to it. The Toolkit unzipped it
 to `%LOCALAPPDATA%\Survey Toolkit\apps\Project Folder Manager\` with a Start menu shortcut.

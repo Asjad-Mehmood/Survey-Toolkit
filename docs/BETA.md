@@ -17,7 +17,7 @@ Each step waits for the owner. Nothing here happens without them.
    (beta)** workflow builds, tests, makes `SurveyToolkit-Setup.exe` and `latest.json`, and
    publishes a GitHub **pre-release** with `docs/releases/v0.5.0.md` as its notes.
 4. **Add the testers** at `/toolkit-beta/admin` → Testers, with a note on each one's PC.
-5. **Send the invitation** (section 7), with the link `https://www.exceltokml.com/toolkit-beta`.
+5. **Send the invitation** (section 7), with the link `https://www.surveyxdigital.com/toolkit-beta`.
 6. **Halfway (about day 7): publish v0.5.1**, even with small changes, to see the Toolkit update
    itself on every tester's PC.
 
@@ -121,7 +121,7 @@ Each problem found goes on the list in section 6 with what was done about it.
 > updates all our survey tools for you: Excel to KML, RoadPro, Traverse & Level, Project Folder
 > Manager and Slope Calculator. The web apps open inside it, already signed in.
 >
-> **Get it:** https://www.exceltokml.com/toolkit-beta (sign in with your Excel to KML account,
+> **Get it:** https://www.surveyxdigital.com/toolkit-beta (sign in with your SurveyX Digital account,
 > [email]).
 >
 > Windows may warn that it doesn't know the program, because it isn't code-signed yet. Choose

@@ -5,7 +5,7 @@
 //     (RoadPro loads by itself at start-up, then RDP starts it),
 //   - the commands, searchable; a press copies one to paste in AutoCAD,
 //   - the user guide, the shortcut keys sheet and RoadPro Hub.
-// The commands and links come from exceltokml.com (/api/toolkit/roadpro), so a new RoadPro version
+// The commands and links come from the website (/api/toolkit/roadpro), so a new RoadPro version
 // needs no new Toolkit; the last copy is kept for when the PC is offline.
 import 'dart:async';
 
@@ -34,7 +34,7 @@ class RoadProInfo {
   final List<RoadProCommand> commands;
   final List<(String, String)> keys;
 
-  /// page, guide, shortcuts, whatsNew: only https addresses on exceltokml.com or GitHub
+  /// page, guide, shortcuts, whatsNew: only https addresses on the website or GitHub
   final Map<String, String> links;
 
   static RoadProInfo? from(Object? j) {

@@ -1,4 +1,4 @@
-// The Excel to KML account in the Toolkit: the same sign-in as exceltokml.com, Slope Calculator
+// The SurveyX Digital account in the Toolkit: the same sign-in as the website, Slope Calculator
 // and Traverse & Level. Sign in or create an account (with the 6-digit code the website emails),
 // or sign in through the browser (Google and saved passwords work there). The session is
 // remembered on this PC, so the Toolkit opens at once next time, offline too.

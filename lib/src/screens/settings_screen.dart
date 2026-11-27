@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
                         TextButton(
                           onPressed: () =>
                               launchUrl(Uri.parse('$websiteUrl/toolkit'), mode: LaunchMode.externalApplication),
-                          child: const Text('exceltokml.com/toolkit'),
+                          child: const Text('surveyxdigital.com/toolkit'),
                         ),
                         detail: 'Version $appVersion · $appPublisher',
                       ),

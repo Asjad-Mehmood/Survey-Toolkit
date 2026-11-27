@@ -1,4 +1,4 @@
-// Talking to exceltokml.com: the same account, sign-in and email check as Excel to KML and
+// Talking to the website (surveyxdigital.com): the same account, sign-in and email check as Excel to KML and
 // Traverse & Level.
 import 'dart:convert';
 
@@ -44,7 +44,7 @@ class Api {
     try {
       res = await http.Response.fromStream(await client.send(req).timeout(const Duration(seconds: 25)));
     } catch (_) {
-      throw ApiError('Could not reach exceltokml.com. Check your connection and try again.');
+      throw ApiError('Could not reach surveyxdigital.com. Check your connection and try again.');
     }
     Map<String, Object?> json = const {};
     try {

@@ -1,13 +1,14 @@
-// The tool list from exceltokml.com/api/toolkit/feed (the website's lib/toolkit/feed.ts): for each
+// The tool list from the website's /api/toolkit/feed (the website's lib/toolkit/feed.ts): for each
 // tool its latest version, the download with its SHA-256, and how it is found on a PC.
 //
 // The six tools are also built in ([builtInTools]), with how to find each one but no version, so
 // the Toolkit can show what is installed before it has ever reached the website, and so the
 // Windows test can check finding them without the website.
+import '../site_hosts.dart';
 import 'version.dart';
 
 /// Links (pages, web apps, release notes) open only on these, over HTTPS
-const allowedDownloadHosts = {'www.exceltokml.com', 'exceltokml.com', 'github.com'};
+const allowedDownloadHosts = {...siteHosts, 'github.com'};
 
 bool isAllowedUrl(String url) {
   final u = Uri.tryParse(url);
@@ -18,7 +19,7 @@ bool isAllowedUrl(String url) {
 bool isAllowedDownload(String url) {
   final u = Uri.tryParse(url);
   if (u == null || u.scheme != 'https') return false;
-  if (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com') return true;
+  if (siteHosts.contains(u.host)) return true;
   return u.host == 'github.com' && u.path.startsWith('/Asjad-Mehmood/') && u.path.contains('/releases/download/');
 }
 
@@ -189,7 +190,7 @@ const builtInTools = [
     id: 'excel-to-kml',
     name: 'Excel to KML',
     platform: 'Windows',
-    page: 'https://www.exceltokml.com/download',
+    page: 'https://www.surveyxdigital.com/download',
     install: InstallInfo(
       kind: 'installer',
       registryKey: 'ExcelToKMLPro',
@@ -201,7 +202,7 @@ const builtInTools = [
     id: 'roadpro',
     name: 'RoadPro',
     platform: 'AutoCAD plugin',
-    page: 'https://www.exceltokml.com/roadpro',
+    page: 'https://www.surveyxdigital.com/roadpro',
     install: InstallInfo(
       kind: 'autocad-bundle',
       files: ['RoadPro.lsp', 'RP_PAVER.pat', 'README.txt'],
@@ -213,8 +214,8 @@ const builtInTools = [
     id: 'traverse',
     name: 'Traverse & Level',
     platform: 'Web app and Windows',
-    page: 'https://www.exceltokml.com/traverse',
-    webApp: 'https://www.exceltokml.com/traverse/app',
+    page: 'https://www.surveyxdigital.com/traverse',
+    webApp: 'https://www.surveyxdigital.com/traverse/app',
     install: InstallInfo(
       kind: 'installer',
       registryKey: 'TraversePro',
@@ -227,15 +228,15 @@ const builtInTools = [
     id: 'folder-manager',
     name: 'Project Folder Manager',
     platform: 'Windows',
-    page: 'https://www.exceltokml.com/project-folder-manager',
+    page: 'https://www.surveyxdigital.com/project-folder-manager',
     install: InstallInfo(kind: 'installer', registryKey: 'ProjectFolderManager', exe: ['ProjectFolderManager.exe']),
   ),
   FeedTool(
     id: 'slope',
     name: 'Slope Calculator',
     platform: 'Web app and Windows',
-    page: 'https://www.exceltokml.com/slope-calculation',
-    webApp: 'https://www.exceltokml.com/slope-calculation/app',
+    page: 'https://www.surveyxdigital.com/slope-calculation',
+    webApp: 'https://www.surveyxdigital.com/slope-calculation/app',
     install: InstallInfo(kind: 'installer', registryKey: 'SlopeCalculator', exe: ['SlopeCalculator.exe']),
   ),
   // github.com/Asjad-Mehmood/auto-draft-app; a silent install (/S) doesn't open it
@@ -243,7 +244,7 @@ const builtInTools = [
     id: 'auto-draft',
     name: 'Auto Draft',
     platform: 'Windows',
-    page: 'https://www.exceltokml.com/auto-draft',
+    page: 'https://www.surveyxdigital.com/auto-draft',
     install: InstallInfo(kind: 'installer', registryKey: 'AutoDraft', exe: ['AutoDraft.exe']),
   ),
 ];

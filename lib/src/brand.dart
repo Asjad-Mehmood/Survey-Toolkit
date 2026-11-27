@@ -2,11 +2,13 @@
 // with --dart-define=APP_VERSION=x.y.z; a local build shows 0.0.0.
 import 'package:flutter/material.dart';
 
+export 'site_hosts.dart';
+
 const appName = 'Survey Toolkit';
-const appTagline = 'Every survey tool from exceltokml.com, always up to date';
-const appPublisher = 'exceltokml.com';
+const appTagline = 'Every survey tool from SurveyX Digital, always up to date';
+const appPublisher = 'SurveyX Digital';
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0.0');
-const websiteUrl = 'https://www.exceltokml.com';
+const websiteUrl = 'https://www.surveyxdigital.com';
 
 /// The website the program talks to (a test build can point at a copy with --dart-define=API_BASE=)
 const apiBase = String.fromEnvironment('API_BASE', defaultValue: websiteUrl);

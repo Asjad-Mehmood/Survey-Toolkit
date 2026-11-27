@@ -1,4 +1,4 @@
-// Sign in, create an account, or sign in through the browser: the same account as exceltokml.com.
+// Sign in, create an account, or sign in through the browser: the same account as surveyxdigital.com.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -204,7 +204,7 @@ class _SignInCardState extends State<SignInCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Your browser is open at exceltokml.com. Sign in there (Google works), then confirm this code:',
+            'Your browser is open at surveyxdigital.com. Sign in there (Google works), then confirm this code:',
             style: TextStyle(color: c.ink, height: 1.45),
           ),
           const SizedBox(height: 14),
@@ -252,12 +252,12 @@ class _SignInCardState extends State<SignInCard> {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 520),
       child: SectionCard(
-        title: 'Your Excel to KML account',
+        title: 'Your SurveyX Digital account',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.intro ?? 'Sign in with your Excel to KML account.',
+              widget.intro ?? 'Sign in with your SurveyX Digital account.',
               style: TextStyle(color: c.muted, height: 1.45),
             ),
             const SizedBox(height: 16),

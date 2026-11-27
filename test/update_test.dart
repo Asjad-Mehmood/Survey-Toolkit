@@ -149,7 +149,7 @@ void main() {
     Future<void> setUpPc(Map<String, Installed> found, {Duration retryOpen = const Duration(minutes: 30)}) async {
       site = FakeSite();
       final store = signedInStore();
-      final account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
+      final account = Account(Api(base: 'https://www.surveyxdigital.com', client: site.client), store);
       await account.restore();
       installer = FakeInstaller();
       model = ToolkitModel(account: account, store: store, detector: FakeDetector(found), installer: installer);

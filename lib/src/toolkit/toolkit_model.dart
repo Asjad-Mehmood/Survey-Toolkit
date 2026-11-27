@@ -116,7 +116,7 @@ class ToolkitModel extends ChangeNotifier {
         final j = await api.call('GET', '/api/toolkit/feed');
         final feed = Feed.from(j);
         if (feed == null) {
-          problem = 'The tool list from exceltokml.com could not be read. This Toolkit may need an update.';
+          problem = 'The tool list from surveyxdigital.com could not be read. This Toolkit may need an update.';
         } else {
           _feed = feed;
           fromKept = false;
@@ -126,7 +126,7 @@ class ToolkitModel extends ChangeNotifier {
         }
       } on ApiError catch (e) {
         problem = e.status == null
-            ? 'No connection to exceltokml.com. Showing what was known at the last check.'
+            ? 'No connection to surveyxdigital.com. Showing what was known at the last check.'
             : e.message;
         if (_feed != null) fromKept = true;
       }

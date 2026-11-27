@@ -25,8 +25,8 @@ List<int> zipOf(Map<String, String> files) {
 
 String shaOf(List<int> b) => sha256.convert(b).toString();
 
-const roadproUrl = 'https://www.exceltokml.com/roadpro/RoadPro.zip';
-const pfmUrl = 'https://www.exceltokml.com/project-folder-manager/Project_Folder_Manager.zip';
+const roadproUrl = 'https://www.surveyxdigital.com/roadpro/RoadPro.zip';
+const pfmUrl = 'https://www.surveyxdigital.com/project-folder-manager/Project_Folder_Manager.zip';
 const slopeUrl =
     'https://github.com/Asjad-Mehmood/Slope-calculator-/releases/download/v1.0.3/SlopeCalculator-Setup.exe';
 
@@ -49,7 +49,7 @@ FeedTool roadpro(List<int> zip, {String version = '3.5', String? sha, int? size}
   id: 'roadpro',
   name: 'RoadPro',
   platform: 'AutoCAD plugin',
-  page: 'https://www.exceltokml.com/roadpro',
+  page: 'https://www.surveyxdigital.com/roadpro',
   version: version,
   download: FeedDownload(url: roadproUrl, file: 'RoadPro.zip', size: size ?? zip.length, sha256: sha ?? shaOf(zip)),
   install: builtInTools[1].install,
@@ -60,7 +60,7 @@ FeedTool pfm(List<int> zip, {String version = '6.3'}) => FeedTool(
   id: 'folder-manager',
   name: 'Project Folder Manager',
   platform: 'Windows',
-  page: 'https://www.exceltokml.com/project-folder-manager',
+  page: 'https://www.surveyxdigital.com/project-folder-manager',
   version: version,
   download: FeedDownload(url: pfmUrl, file: 'Project_Folder_Manager.zip', size: zip.length, sha256: shaOf(zip)),
   install: folderManagerZip,
@@ -75,7 +75,7 @@ FeedTool pfm7() => FeedTool(
   id: 'folder-manager',
   name: 'Project Folder Manager',
   platform: 'Windows',
-  page: 'https://www.exceltokml.com/project-folder-manager',
+  page: 'https://www.surveyxdigital.com/project-folder-manager',
   version: '7.0.0',
   download: FeedDownload(
     url: pfm7Url,
@@ -90,7 +90,7 @@ FeedTool slope({String version = '1.0.3', String? sha}) => FeedTool(
   id: 'slope',
   name: 'Slope Calculator',
   platform: 'Web app and Windows',
-  page: 'https://www.exceltokml.com/slope-calculation',
+  page: 'https://www.surveyxdigital.com/slope-calculation',
   version: version,
   download: FeedDownload(
     url: slopeUrl,
@@ -185,6 +185,8 @@ void main() {
       expect(isAllowedDownload('https://github.com/Asjad-Mehmood/x/archive/main.zip'), isFalse);
       expect(isAllowedDownload('http://www.exceltokml.com/roadpro/RoadPro.zip'), isFalse);
       expect(isAllowedDownload('https://exceltokml.com.evil.example/x.zip'), isFalse);
+      expect(isAllowedDownload('https://surveyxdigital.com.evil.example/x.zip'), isFalse);
+      expect(isAllowedDownload('https://www.surveyxdigital.com/roadpro/RoadPro.zip'), isTrue);
     });
 
     test('reads tasklist output', () {
@@ -579,7 +581,7 @@ void main() {
                 'id': 'roadpro',
                 'name': 'RoadPro',
                 'platform': 'AutoCAD plugin',
-                'page': 'https://www.exceltokml.com/roadpro',
+                'page': 'https://www.surveyxdigital.com/roadpro',
                 'version': '3.5',
                 'download': {'url': roadproUrl, 'file': 'RoadPro.zip', 'size': zip.length, 'sha256': shaOf(zip)},
                 'install': {

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import '../account/account.dart';
+import '../site_hosts.dart';
 
 class WorkspaceApp {
   const WorkspaceApp({
@@ -23,7 +24,7 @@ class WorkspaceApp {
   /// The sidebar's label
   final String short;
 
-  /// The web app on exceltokml.com (also the pages /api/toolkit/handoff may go on to)
+  /// The web app on the website (also the pages /api/toolkit/handoff may go on to)
   final String path;
   final IconData icon;
 
@@ -93,11 +94,9 @@ const workspaceApps = [
 ];
 
 /// Pages the workspace keeps inside the window: the website itself, and its sign-in address
-/// (auth.exceltokml.com), so a web app that has to sign in again does so in the window. Anything
-/// else opens in the browser.
-bool staysInside(Uri u) =>
-    u.scheme == 'https' &&
-    (u.host == 'www.exceltokml.com' || u.host == 'exceltokml.com' || u.host == 'auth.exceltokml.com');
+/// (auth.surveyxdigital.com), so a web app that has to sign in again does so in the window. The
+/// old address, exceltokml.com, too while it still answers. Anything else opens in the browser.
+bool staysInside(Uri u) => u.scheme == 'https' && (siteHosts.contains(u.host) || authHosts.contains(u.host));
 
 /// Links a page inside the workspace may hand to Windows: web pages and email only. Any other
 /// scheme (file:, ms-msdt:, search-ms:, a program's own …) could start something on the PC.

@@ -72,8 +72,8 @@ class FakeSite {
             {'key': 'U', 'text': 'Undo the whole road in one step'},
           ],
           'links': {
-            'page': 'https://www.exceltokml.com/roadpro',
-            'guide': 'https://www.exceltokml.com/roadpro/RoadPro_User_Guide.pdf',
+            'page': 'https://www.surveyxdigital.com/roadpro',
+            'guide': 'https://www.surveyxdigital.com/roadpro/RoadPro_User_Guide.pdf',
             'shortcuts': 'http://evil.example/x.xlsx',
           },
         });
@@ -83,7 +83,7 @@ class FakeSite {
         if (!authed) return json({'error': 'Sign in'}, 401);
         if (!handoffWorks) return json({'error': 'Couldn\'t start the sign-in.'}, 500);
         handoffs.add((jsonDecode(req.body) as Map)['next'] as String);
-        return json({'success': true, 'url': 'https://www.exceltokml.com/api/toolkit/handoff?code=${'c' * 64}'});
+        return json({'success': true, 'url': 'https://www.surveyxdigital.com/api/toolkit/handoff?code=${'c' * 64}'});
       case '/api/toolkit/app-code':
         if (!authed) return json({'error': 'Sign in'}, 401);
         if (!appCodeWorks) return json({'error': 'Couldn\'t start the sign-in.'}, 500);
@@ -226,7 +226,7 @@ class Harness {
     this.realNative,
   }) {
     background = Background(tray: tray, startup: startup);
-    account = Account(Api(base: 'https://www.exceltokml.com', client: site.client), store);
+    account = Account(Api(base: 'https://www.surveyxdigital.com', client: site.client), store);
     this.installer = lookOnly ? null : installer ?? FakeInstaller();
     model = ToolkitModel(account: account, store: store, detector: detector ?? typicalPc(), installer: this.installer);
     settings = AppSettings(store);
